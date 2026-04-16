@@ -195,6 +195,20 @@ export default function Configuracion() {
               <span className="text-[15px] font-medium text-[#1f1f1f] dark:text-white">Exportar resumen en PDF</span>
               <svg className="ml-auto" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8c887d" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
+            <button onClick={async () => {
+  const res = await fetch('/api/reporte', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId: user.id, email: user.email, nombre: form.full_name })
+  })
+  if (res.ok) setMsg('✅ Reporte enviado a tu email')
+  else setMsg('❌ Error al enviar reporte')
+}}
+  className="w-full flex items-center gap-4 rounded-[22px] bg-white dark:bg-[#1e1e32] border border-[#ebe6db] dark:border-[#2e2e50] p-4">
+  <div className="w-10 h-10 rounded-full bg-[#5a4bc3] flex items-center justify-center text-lg">📧</div>
+  <span className="text-[15px] font-medium text-[#1f1f1f] dark:text-white">Enviar reporte por email</span>
+  <svg className="ml-auto" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8c887d" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+</button>
           </div>
         )}
 
