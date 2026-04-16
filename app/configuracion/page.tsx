@@ -1,0 +1,311 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { supabase } from '../../lib/supabase'
+
+export default function Configuracion() {
+  const router = useRouter()
+  const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [seccion, setSeccion] = useState<'menu' | 'perfil' | 'historial'>('menu')
+  const [guardando, setGuardando] = useState(false)
+  const [modoOscuro, setModoOscuro] = useState(false)
+  const [historial, setHistorial] = useState<any[]>([])
+  const [expenses, setExpenses] = useState<any[]>([])
+  const [form, setForm] = useState({ full_name: '', monthly_income: '', salary_day: '' })
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/'); return }
+      setUser(user)
+      const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      setProfile(prof)
+      setForm({
+        full_name: prof?.full_name || user.user_metadata?.full_name || '',
+        monthly_income: prof?.monthly_income || '',
+        salary_day: prof?.salary_day || '',
+      })
+      const isDark = document.documentElement.classList.contains('dark')
+      setModoOscuro(isDark)
+
+      const { data: exp } = await supabase.from('expenses').select('amount, date, description, category').eq('user_id', user.id)
+      setExpenses(exp || [])
+      if (exp) {
+        const byMonth: Record<string, number> = {}
+        exp.forEach((e: any) => {
+          const d = new Date(e.date)
+          const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+          byMonth[key] = (byMonth[key] || 0) + Number(e.amount)
+        })
+        const sorted = Object.entries(byMonth).sort((a,b) => b[0].localeCompare(a[0])).map(([key, total]) => {
+          const [year, month] = key.split('-')
+          const date = new Date(parseInt(year), parseInt(month)-1, 1)
+          return { label: date.toLocaleDateString('es-PE',{month:'long',year:'numeric'}), total, key }
+        })
+        setHistorial(sorted)
+      }
+      setLoading(false)
+    }
+    init()
+  }, [])
+
+  const guardarPerfil = async () => {
+    if (!form.full_name || !form.monthly_income || !form.salary_day) return
+    setGuardando(true)
+    await supabase.from('profiles').update({
+      full_name: form.full_name,
+      monthly_income: parseFloat(form.monthly_income),
+      salary_day: parseInt(form.salary_day),
+    }).eq('id', user.id)
+    setMsg('✅ Cambios guardados')
+    setTimeout(() => setMsg(''), 3000)
+    setGuardando(false)
+  }
+
+  const eliminarCuenta = async () => {
+    if (!confirm('¿Estás seguro? Esta acción no se puede deshacer.')) return
+    await supabase.from('expenses').delete().eq('user_id', user.id)
+    await supabase.from('goals').delete().eq('user_id', user.id)
+    await supabase.from('investments').delete().eq('user_id', user.id)
+    await supabase.from('profiles').delete().eq('id', user.id)
+    await supabase.auth.signOut()
+    router.push('/')
+  }
+
+  const toggleOscuro = () => {
+    const nuevo = !modoOscuro
+    setModoOscuro(nuevo)
+    if (nuevo) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }
+
+  const exportarPDF = async () => {
+    const { default: jsPDF } = await import('jspdf')
+    const doc = new jsPDF()
+    const now = new Date()
+    const mes = now.toLocaleDateString('es-PE', {month:'long', year:'numeric'})
+
+    doc.setFontSize(20)
+    doc.setTextColor(76, 29, 149)
+    doc.text('Finti — Resumen Financiero', 20, 20)
+
+    doc.setFontSize(12)
+    doc.setTextColor(100, 100, 100)
+    doc.text(`Usuario: ${form.full_name}`, 20, 35)
+    doc.text(`Período: ${mes}`, 20, 43)
+    doc.text(`Ingreso mensual: S/${parseFloat(form.monthly_income || '0').toLocaleString('es-PE')}`, 20, 51)
+
+    const mesActual = expenses.filter(e => {
+      const d = new Date(e.date)
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+    })
+    const totalMes = mesActual.reduce((s, e) => s + Number(e.amount), 0)
+    const disponible = parseFloat(form.monthly_income || '0') - totalMes
+
+    doc.setFontSize(14)
+    doc.setTextColor(178, 79, 88)
+    doc.text(`Total gastado: S/${totalMes.toLocaleString('es-PE')}`, 20, 65)
+    doc.setTextColor(69, 125, 49)
+    doc.text(`Disponible: S/${disponible.toLocaleString('es-PE')}`, 20, 75)
+
+    doc.setFontSize(13)
+    doc.setTextColor(50, 50, 50)
+    doc.text('Últimos gastos del mes:', 20, 90)
+
+    let y = 100
+    mesActual.slice(0, 15).forEach(e => {
+      doc.setFontSize(10)
+      doc.setTextColor(80, 80, 80)
+      doc.text(`• ${e.description} (${e.category})`, 22, y)
+      doc.text(`S/${Number(e.amount).toLocaleString('es-PE')}`, 170, y, {align:'right'})
+      y += 8
+      if (y > 270) {
+        doc.addPage()
+        y = 20
+      }
+    })
+
+    doc.setFontSize(9)
+    doc.setTextColor(150, 150, 150)
+    doc.text('Generado por Finti — Tu gestor financiero inteligente', 20, 285)
+
+    doc.save(`finti-resumen-${now.getFullYear()}-${now.getMonth()+1}.pdf`)
+  }
+
+  if (loading) return <div className="min-h-screen bg-[#f5f3ee] flex items-center justify-center"><p className="text-[#8c887d]">Cargando...</p></div>
+
+  const firstName = user?.user_metadata?.full_name?.split(' ')[0] || ''
+
+  return (
+    <div className="min-h-screen bg-[#f5f3ee] dark:bg-[#0f0f1a]">
+      <div className="px-4 pt-5 pb-2 flex items-start justify-between">
+        <div>
+          <p className="text-[11px] font-semibold tracking-widest text-[#8c887d] uppercase">{firstName}</p>
+          <p className="text-[13px] font-bold tracking-widest text-[#1f1f1f] dark:text-white uppercase">
+            {seccion === 'menu' ? 'Configuración' : seccion === 'perfil' ? 'Mi Perfil' : 'Historial de meses'}
+          </p>
+        </div>
+        <button onClick={async () => { await supabase.auth.signOut(); router.push('/') }} className="w-9 h-9 rounded-full bg-[#ece8df] dark:bg-[#252540] flex items-center justify-center">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5a4bc3" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+
+      <div className="px-4 pb-32 mt-2">
+
+        {seccion === 'menu' && (
+          <div className="space-y-3">
+            <p className="text-[13px] text-[#8c887d]">Gestiona tu cuenta y preferencias.</p>
+
+            {[
+              { label: 'Mi perfil', icon: '👤', onClick: () => setSeccion('perfil') },
+              { label: 'Historial de meses', icon: '🕐', onClick: () => setSeccion('historial') },
+            ].map(item => (
+              <button key={item.label} onClick={item.onClick}
+                className="w-full flex items-center gap-4 rounded-[22px] bg-white dark:bg-[#1e1e32] border border-[#ebe6db] dark:border-[#2e2e50] p-4">
+                <div className="w-10 h-10 rounded-full bg-[#5a4bc3] flex items-center justify-center text-lg">{item.icon}</div>
+                <span className="text-[15px] font-medium text-[#1f1f1f] dark:text-white">{item.label}</span>
+                <svg className="ml-auto" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8c887d" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            ))}
+
+            {/* Modo oscuro */}
+            <div className="flex items-center justify-between rounded-[22px] bg-white dark:bg-[#1e1e32] border border-[#ebe6db] dark:border-[#2e2e50] p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-[#5a4bc3] flex items-center justify-center text-lg">🌙</div>
+                <span className="text-[15px] font-medium text-[#1f1f1f] dark:text-white">Modo oscuro</span>
+              </div>
+              <button onClick={toggleOscuro}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${modoOscuro?'bg-[#5a4bc3]':'bg-[#ddd7cc]'}`}>
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${modoOscuro?'translate-x-6':'translate-x-1'}`}/>
+              </button>
+            </div>
+
+            {/* Exportar PDF */}
+            <button onClick={exportarPDF}
+              className="w-full flex items-center gap-4 rounded-[22px] bg-white dark:bg-[#1e1e32] border border-[#ebe6db] dark:border-[#2e2e50] p-4">
+              <div className="w-10 h-10 rounded-full bg-[#22c55e] flex items-center justify-center text-lg">📄</div>
+              <span className="text-[15px] font-medium text-[#1f1f1f] dark:text-white">Exportar resumen en PDF</span>
+              <svg className="ml-auto" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8c887d" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        )}
+
+        {seccion === 'perfil' && (
+          <div className="space-y-4">
+            <button onClick={() => setSeccion('menu')} className="flex items-center gap-2 text-[#5a4bc3] text-[14px] font-medium">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+              Volver
+            </button>
+
+            <div className="flex flex-col items-center py-4">
+              <div className="w-20 h-20 rounded-full bg-[#5a4bc3] flex items-center justify-center text-3xl font-bold text-white mb-3">
+                {form.full_name.charAt(0).toUpperCase()}
+              </div>
+              <p className="text-[16px] font-bold text-[#1f1f1f] dark:text-white">{form.full_name}</p>
+              <p className="text-[13px] text-[#8c887d]">{user.email}</p>
+            </div>
+
+            <div className="rounded-[22px] border border-[#ebe6db] bg-white dark:bg-[#1e1e32] dark:border-[#2e2e50] p-4 space-y-3">
+              <p className="text-[12px] font-bold uppercase tracking-wide text-[#5a4bc3]">Datos personales</p>
+              <div>
+                <p className="text-[11px] font-bold uppercase text-[#726d62] mb-1">Nombre completo</p>
+                <input type="text" value={form.full_name} onChange={e=>setForm(p=>({...p,full_name:e.target.value}))}
+                  className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] dark:bg-[#252540] dark:border-[#2e2e50] dark:text-white px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[11px] font-bold uppercase text-[#726d62] mb-1">Ingreso (S/)</p>
+                  <input type="number" value={form.monthly_income} onChange={e=>setForm(p=>({...p,monthly_income:e.target.value}))}
+                    className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] dark:bg-[#252540] dark:border-[#2e2e50] dark:text-white px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase text-[#726d62] mb-1">Día cobro</p>
+                  <input type="number" min="1" max="31" value={form.salary_day} onChange={e=>setForm(p=>({...p,salary_day:e.target.value}))}
+                    className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] dark:bg-[#252540] dark:border-[#2e2e50] dark:text-white px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
+                </div>
+              </div>
+              {msg && <p className="text-[13px] text-[#22c55e] font-medium">{msg}</p>}
+              <button onClick={guardarPerfil} disabled={guardando}
+                className="w-full rounded-[14px] bg-[#5a4bc3] py-3 text-[14px] font-bold text-white disabled:opacity-40">
+                {guardando ? 'Guardando...' : '💾 Guardar cambios'}
+              </button>
+            </div>
+
+            <div className="rounded-[22px] border border-[#ebe6db] bg-white dark:bg-[#1e1e32] dark:border-[#2e2e50] p-4">
+              <p className="text-[12px] font-bold uppercase tracking-wide text-[#5a4bc3] mb-2">Seguridad</p>
+              <p className="text-[13px] text-[#8c887d]">Tu cuenta usa autenticación con Google. Para cambiar tu contraseña ve a tu cuenta de Google.</p>
+            </div>
+
+            <div className="rounded-[22px] border border-red-200 bg-red-50 p-4">
+              <button onClick={eliminarCuenta} className="w-full flex items-center justify-center gap-2 text-[14px] font-bold text-red-600">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                Eliminar cuenta
+              </button>
+              <p className="text-[11px] text-red-400 text-center mt-1">Esta acción eliminará todos tus datos permanentemente.</p>
+            </div>
+          </div>
+        )}
+
+        {seccion === 'historial' && (
+          <div className="space-y-3">
+            <button onClick={() => setSeccion('menu')} className="flex items-center gap-2 text-[#5a4bc3] text-[14px] font-medium">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+              Volver
+            </button>
+
+            {historial.length === 0 ? (
+              <div className="py-12 text-center">
+                <p className="text-[15px] font-medium text-[#26231f]">Sin historial aún</p>
+                <p className="text-[13px] text-[#8c887d] mt-1">Registra gastos para ver tu historial mensual.</p>
+              </div>
+            ) : historial.map((h, i) => {
+              const prev = historial[i+1]
+              const diff = prev ? ((h.total - prev.total) / prev.total * 100) : null
+              return (
+                <div key={h.key} className="rounded-[22px] border border-[#ebe6db] bg-white dark:bg-[#1e1e32] dark:border-[#2e2e50] p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[14px] font-bold text-[#1f1f1f] dark:text-white capitalize">{h.label}</p>
+                      <p className="text-[20px] font-bold text-[#b24f58]">S/{h.total.toLocaleString('es-PE')}</p>
+                    </div>
+                    {diff !== null && (
+                      <div className={`flex items-center gap-1 text-[13px] font-bold ${diff > 0 ? 'text-red-500' : 'text-[#22c55e]'}`}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          {diff > 0 ? <polyline points="18 15 12 9 6 15"/> : <polyline points="6 9 12 15 18 9"/>}
+                        </svg>
+                        {Math.abs(diff).toFixed(1)}%
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#0f0f1a] border-t border-[#ece8df] dark:border-[#2e2e50]">
+        <div className="max-w-md mx-auto flex">
+          {[
+            {href:'/dashboard',label:'Inicio',active:false,icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>},
+            {href:'/gastos',label:'Gastos',active:false,icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>},
+            {href:'/metas',label:'Metas',active:false,icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>},
+            {href:'/inversiones',label:'Inversiones',active:false,icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>},
+          ].map((item:any) => (
+            <Link key={item.href} href={item.href} className={`flex-1 flex flex-col items-center py-3 gap-1 ${item.active?'text-[#5a4bc3]':'text-[#8c887d]'}`}>
+              {item.icon}
+              <span className="text-[11px] font-medium">{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+html.dark body {
+  background: #0f0f1a;
+  color: #ffffff;
+}
+
+html.dark .bg-\[\#f5f3ee\] { background-color: #0f0f1a !important; }
+html.dark .bg-white { background-color: #1e1e32 !important; }
+html.dark .bg-\[\#f3f0e8\] { background-color: #252540 !important; }
+html.dark .bg-\[\#fcfbf8\] { background-color: #1e1e32 !important; }
+html.dark .bg-\[\#ece8df\] { background-color: #252540 !important; }
+html.dark .text-\[\#1f1f1f\] { color: #ffffff !important; }
+html.dark .text-\[\#47433d\] { color: #d0d0f0 !important; }
+html.dark .text-\[\#5d594f\] { color: #b0b0cc !important; }
+html.dark .text-\[\#726d62\] { color: #8080a0 !important; }
+html.dark .text-\[\#8c887d\] { color: #6060a0 !important; }
+html.dark .text-\[\#26231f\] { color: #ffffff !important; }
+html.dark .text-\[\#24211d\] { color: #ffffff !important; }
+html.dark .border-\[\#ebe6db\] { border-color: #2e2e50 !important; }
+html.dark .border-\[\#e5dfd5\] { border-color: #2e2e50 !important; }
+html.dark .bg-\[\#f7f4ed\] { background-color: #252540 !important; }
+html.dark input { color: #ffffff !important; }
+html.dark select { color: #ffffff !important; background-color: #252540 !important; }
