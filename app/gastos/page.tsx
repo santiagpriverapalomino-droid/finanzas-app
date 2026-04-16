@@ -1,4 +1,5 @@
 'use client'
+export const dynamic = 'force-dynamic'
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -736,3 +737,4 @@ const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set())
     </div>
   )
 }
+
