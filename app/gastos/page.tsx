@@ -282,6 +282,8 @@ export default function Gastos() {
   const [form, setForm] = useState({ description:'', category:'Alimentación', amount:'', date:todayStr() })
   const [fixedForm, setFixedForm] = useState({ name:'', amount:'', day_of_month:'1', category:'Alimentación', active:true })
 const [isImporting, setIsImporting] = useState(false)
+const [isScanning, setIsScanning] = useState(false)
+const [scanando, setScanando] = useState(false)
 const [importando, setImportando] = useState(false)
 const [gastosImportados, setGastosImportados] = useState<any[]>([])
 const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set())
@@ -405,10 +407,16 @@ const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set())
     <h1 className="text-[16px] font-bold text-[#1f1f1f]">Mis gastos</h1>
     <p className="text-[13px] text-[#5d594f]">Gestiona y visualiza todos tus movimientos</p>
   </div>
-  <button onClick={() => { setIsImporting(true) }}
-    className="flex items-center gap-1.5 bg-[#ede9ff] border border-[#c8bbf5] rounded-[12px] px-3 py-2 text-[12px] font-bold text-[#5a4bc3]">
-    📄 Importar
-  </button>
+  <div className="flex gap-2">
+    <button onClick={() => setIsScanning(true)}
+      className="flex items-center gap-1.5 bg-[#ede9ff] border border-[#c8bbf5] rounded-[12px] px-3 py-2 text-[12px] font-bold text-[#5a4bc3]">
+      📸 Boleta
+    </button>
+    <button onClick={() => { setIsImporting(true) }}
+      className="flex items-center gap-1.5 bg-[#ede9ff] border border-[#c8bbf5] rounded-[12px] px-3 py-2 text-[12px] font-bold text-[#5a4bc3]">
+      📄 Banco
+    </button>
+  </div>
 </div>
         </div>
 
@@ -506,6 +514,60 @@ const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set())
         className="fixed bottom-24 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-[#5a4bc3] text-white flex items-center justify-center shadow-lg">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
+{isScanning && (
+  <div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm" onClick={() => setIsScanning(false)}>
+    <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-[#fcfbf8] p-5 pb-8" onClick={e => e.stopPropagation()}>
+      <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#ddd7cc]"/>
+      <h2 className="text-[18px] font-semibold text-[#24211d] mb-1">Escanear boleta</h2>
+      <p className="text-[13px] text-[#8c887d] mb-4">Saca foto a tu boleta o ticket y la IA extrae el gasto automáticamente.</p>
+      <label className={`flex flex-col items-center justify-center w-full h-36 rounded-[18px] border-2 border-dashed border-[#c8bbf5] bg-[#faf9ff] cursor-pointer ${scanando ? 'opacity-50' : 'hover:bg-[#ede9ff]'} transition-colors`}>
+        <input type="file" accept="image/*" capture="environment" className="hidden" disabled={scanando}
+          onChange={async (e) => {
+            const file = e.target.files?.[0]
+            if (!file) return
+            setScanando(true)
+            try {
+              const fd = new FormData()
+              fd.append('file', file)
+              const res = await fetch('/api/escanear', { method: 'POST', body: fd })
+              const data = await res.json()
+              if (data.gasto) {
+                setForm({
+                  description: data.gasto.descripcion,
+                  category: data.gasto.categoria,
+                  amount: String(data.gasto.monto),
+                  date: todayStr()
+                })
+                setIsScanning(false)
+                setIsAdding(true)
+              } else {
+                alert('No se pudo leer la boleta. Intenta con una foto más clara.')
+              }
+            } catch {
+              alert('Error al procesar la imagen.')
+            }
+            setScanando(false)
+          }}
+        />
+        {scanando ? (
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-8 h-8 border-4 border-[#5a4bc3] border-t-transparent rounded-full animate-spin"/>
+            <p className="text-[13px] text-[#5a4bc3] font-medium">Analizando boleta...</p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-4xl">📸</span>
+            <p className="text-[14px] font-medium text-[#5a4bc3]">Toca para abrir cámara</p>
+            <p className="text-[12px] text-[#8c887d]">O selecciona una foto de tu galería</p>
+          </div>
+        )}
+      </label>
+      <div className="rounded-[14px] bg-[#f0fdf4] border border-[#bbf7d0] p-3 mt-4">
+        <p className="text-[12px] text-[#166534]">✓ Funciona con boletas, tickets, recibos y capturas de pantalla de pagos</p>
+      </div>
+    </div>
+  </div>
+)}
 {isImporting && (
   <div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm" onClick={() => { setIsImporting(false); setGastosImportados([]); setSeleccionados(new Set()) }}>
     <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-[#fcfbf8] p-5 pb-8 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
