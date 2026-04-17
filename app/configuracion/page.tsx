@@ -12,7 +12,7 @@ export default function Configuracion() {
   const [loading, setLoading] = useState(true)
   const [seccion, setSeccion] = useState<'menu' | 'perfil' | 'historial' | 'plan'>('menu')
   const [guardando, setGuardando] = useState(false)
-  const [modoOscuro, setModoOscuro] = useState(false)
+  const [modoOscuro, setModoOscuro] = useState(() => document.documentElement.classList.contains('dark'))
   const [historial, setHistorial] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
   const [form, setForm] = useState({ full_name: '', monthly_income: '', salary_day: '' })
@@ -270,14 +270,6 @@ export default function Configuracion() {
                   className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] dark:bg-[#252540] dark:border-[#2e2e50] dark:text-white px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
               </div>
               <div>
-                  <p className="text-[11px] font-bold uppercase text-[#726d62] mb-1">Moneda principal</p>
-                  <select value={profile?.main_currency || 'PEN'} onChange={e => setProfile((p: any) => ({...p, main_currency: e.target.value}))}
-                    className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] dark:bg-[#252540] dark:border-[#2e2e50] dark:text-white px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]">
-                    <option value="PEN">🇵🇪 Soles (S/)</option>
-                    <option value="USD">🇺🇸 Dólares ($)</option>
-                  </select>
-                </div>
-                <div>
                   <p className="text-[11px] font-bold uppercase text-[#726d62] mb-1">Moneda principal</p>
                   <select value={profile?.main_currency || 'PEN'} onChange={e => setProfile((p: any) => ({...p, main_currency: e.target.value}))}
                     className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] dark:bg-[#252540] dark:border-[#2e2e50] dark:text-white px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]">
