@@ -88,7 +88,7 @@ export default function Metas() {
           <p className="text-[13px] text-[#4d4a43]">Mis metas</p>
           <p className="text-[18px] font-semibold text-[#1f1f1f] mt-1">
             {goals.length} activas · {fmt(goals.filter(g => !g.currency || g.currency === 'PEN').reduce((s,g) => s + g.saved_amount, 0))} ahorrados
-            {goals.some(g => g.currency === 'USD') && ` + ${fmt(goals.filter(g => g.currency === 'USD').reduce((s,g) => s + g.saved_amount, 0), 'USD')}`}
+            {goals.some(g => g.currency === 'USD') && ` + $${goals.filter(g => g.currency === 'USD').reduce((s,g) => s + g.saved_amount, 0).toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:0})} USD`}
           </p>
         </div>
 
@@ -125,7 +125,7 @@ export default function Metas() {
                 </div>
 
                 <div className="flex justify-between text-[13px] text-[#8c887d] mb-3">
-                  <span>{fmt(goal.saved_amount, currency)} de {fmt(goal.target_amount, currency)}</span>
+                  <span>{currency === 'USD' ? `$${Math.abs(goal.saved_amount).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}` : fmt(goal.saved_amount)} de {currency === 'USD' ? `$${Math.abs(goal.target_amount).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}` : fmt(goal.target_amount)}</span>
                   <span className="text-[#5a4bc3] font-semibold">Meta real</span>
                 </div>
 
@@ -133,7 +133,7 @@ export default function Metas() {
                   {[50, 100].map(monto => (
                     <button key={monto} onClick={() => abonarMeta(goal.id, monto)}
                       className="rounded-full border border-[#e2decb] px-4 py-1.5 text-[13px] font-medium text-[#47433d] hover:bg-[#ede9ff] hover:border-[#5a4bc3] hover:text-[#5a4bc3] transition-all">
-                      +{fmt(monto, currency)}
+                      +{currency === 'USD' ? `$${Math.abs(monto).toLocaleString('en-US')}` : fmt(monto)}
                     </button>
                   ))}
                 </div>
@@ -146,14 +146,14 @@ export default function Metas() {
                   <p className="text-[13px] text-[#78350f] mb-3">
                     {goal.target_amount - goal.saved_amount <= 0
                       ? '🎉 ¡Meta completada!'
-                      : `Si ahorras ${fmt(sim, currency)} más al mes, llegarías a tu meta en ${Math.ceil((goal.target_amount - goal.saved_amount) / sim)} meses.`
+                      : `Si ahorras ${currency === 'USD' ? '$' + sim.toLocaleString('en-US') : fmt(sim)} más al mes, llegarías a tu meta en ${Math.ceil((goal.target_amount - goal.saved_amount) / sim)} meses.`
                     }
                   </p>
                   <div className="flex gap-2">
                     {[50, 150, 300].map(monto => (
                       <button key={monto} onClick={() => setSimulador({ ...simulador, [goal.id]: monto })}
                         className={`flex-1 rounded-full py-1.5 text-[12px] font-bold transition-all ${sim === monto ? 'bg-[#5a4bc3] text-white' : 'border border-[#e2decb] text-[#47433d]'}`}>
-                        +{fmt(monto, currency)}/mes
+                        +{currency === 'USD' ? `$${Math.abs(monto).toLocaleString('en-US')}` : fmt(monto)}/mes
                       </button>
                     ))}
                   </div>
