@@ -8,10 +8,10 @@ import { supabase } from '../../lib/supabase'
 interface Mensaje { rol: 'ia' | 'user'; texto: string }
 
 const PREGUNTAS_SUGERIDAS = [
-  '¿Dónde puedo invertir con S/500?',
-  '¿Cómo funciona la bolsa de valores?',
-  '¿Qué es mejor, AFP u ONP?',
-  '¿Cómo salir de deudas rápido?',
+  '¿Cómo puedo ahorrar con mi sueldo mínimo?',
+  '¿Me conviene la AFP o la ONP?',
+  '¿Cómo invierto mis primeros S/500?',
+  '¿Cómo salgo de una deuda rápido?',
 ]
 
 export default function ChatIA() {
