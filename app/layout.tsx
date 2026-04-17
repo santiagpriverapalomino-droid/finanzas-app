@@ -5,7 +5,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'FinanzApp — Tu gestor financiero inteligente',
+  title: 'Finti — Tu gestor financiero inteligente',
   description: 'Controla tus gastos y ahorra más con IA',
 }
 
@@ -16,8 +16,22 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#4C1D95" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Finti" />
+      </head>
       <body className={inter.className}>
         {children}
+        <script dangerouslySetInnerHTML={{__html: `
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/sw.js')
+            })
+          }
+        `}}/>
       </body>
     </html>
   )
