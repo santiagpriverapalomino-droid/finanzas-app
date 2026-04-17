@@ -10,7 +10,7 @@ export default function Configuracion() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [seccion, setSeccion] = useState<'menu' | 'perfil' | 'historial'>('menu')
+  const [seccion, setSeccion] = useState<'menu' | 'perfil' | 'historial' | 'plan'>('menu')
   const [guardando, setGuardando] = useState(false)
   const [modoOscuro, setModoOscuro] = useState(false)
   const [historial, setHistorial] = useState<any[]>([])
@@ -150,7 +150,7 @@ export default function Configuracion() {
         <div>
           <p className="text-[11px] font-semibold tracking-widest text-[#8c887d] uppercase">{firstName}</p>
           <p className="text-[13px] font-bold tracking-widest text-[#1f1f1f] dark:text-white uppercase">
-            {seccion === 'menu' ? 'Configuración' : seccion === 'perfil' ? 'Mi Perfil' : 'Historial de meses'}
+            {seccion === 'menu' ? 'Configuración' : seccion === 'perfil' ? 'Mi Perfil' : seccion === 'plan' ? 'Mi Plan Financiero' : 'Historial de meses'}
           </p>
         </div>
         <button onClick={async () => { await supabase.auth.signOut(); router.push('/') }} className="w-9 h-9 rounded-full bg-[#ece8df] dark:bg-[#252540] flex items-center justify-center">
@@ -166,7 +166,8 @@ export default function Configuracion() {
 
             {[
               { label: 'Mi perfil', icon: '👤', onClick: () => setSeccion('perfil') },
-              { label: 'Historial de meses', icon: '🕐', onClick: () => setSeccion('historial') },
+              { label: 'Mi plan 50/30/20', icon: '📊', onClick: () => setSeccion('plan') },
+{ label: 'Historial de meses', icon: '🕐', onClick: () => setSeccion('historial') },
             ].map(item => (
               <button key={item.label} onClick={item.onClick}
                 className="w-full flex items-center gap-4 rounded-[22px] bg-white dark:bg-[#1e1e32] border border-[#ebe6db] dark:border-[#2e2e50] p-4">
@@ -300,7 +301,91 @@ export default function Configuracion() {
             </div>
           </div>
         )}
+{seccion === 'plan' && (
+  <div className="space-y-4">
+    <button onClick={() => setSeccion('menu')} className="flex items-center gap-2 text-[#5a4bc3] text-[14px] font-medium">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Volver
+    </button>
 
+    <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4 space-y-4">
+      <p className="text-[12px] font-bold uppercase tracking-wide text-[#5a4bc3]">Modo primer sueldo</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[14px] font-medium text-[#1f1f1f]">Activar plan de distribución</p>
+          <p className="text-[12px] text-[#8c887d]">Divide tu sueldo en necesidades, gustos y ahorro</p>
+        </div>
+        <button onClick={async () => {
+          const newVal = !profile?.is_first_salary_mode
+          await supabase.from('profiles').update({ is_first_salary_mode: newVal }).eq('id', user.id)
+          setProfile((p: any) => ({...p, is_first_salary_mode: newVal}))
+        }}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${profile?.is_first_salary_mode ? 'bg-[#5a4bc3]' : 'bg-[#ddd7cc]'}`}>
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${profile?.is_first_salary_mode ? 'translate-x-6' : 'translate-x-1'}`}/>
+        </button>
+      </div>
+    </div>
+
+    {profile?.is_first_salary_mode && (
+      <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4 space-y-4">
+        <p className="text-[12px] font-bold uppercase tracking-wide text-[#5a4bc3]">Distribución de tu sueldo</p>
+        <p className="text-[13px] text-[#8c887d]">Los porcentajes deben sumar 100%</p>
+
+        {[
+          { label: '🍽️ Necesidades', key: 'needs_percent', color: '#5b4bc4' },
+          { label: '🛍️ Gustos', key: 'wants_percent', color: '#f1a22e' },
+          { label: '🐷 Ahorro', key: 'savings_percent', color: '#22c55e' },
+        ].map(item => (
+          <div key={item.key}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[14px] text-[#403c37]">{item.label}</span>
+              <div className="flex items-center gap-2">
+                <input type="number" min="0" max="100"
+                  value={(profile as any)?.[item.key] || 0}
+                  onChange={e => setProfile((p: any) => ({...p, [item.key]: parseInt(e.target.value) || 0}))}
+                  className="w-16 rounded-[10px] border border-[#e5dfd5] bg-[#f7f4ed] px-2 py-1 text-[13px] font-bold text-center outline-none focus:border-[#5a4bc3]"/>
+                <span className="text-[13px] text-[#8c887d]">%</span>
+              </div>
+            </div>
+            <div className="h-2 rounded-full bg-[#ece7dd]">
+              <div className="h-2 rounded-full transition-all" style={{width:`${(profile as any)?.[item.key] || 0}%`, backgroundColor: item.color}}/>
+            </div>
+          </div>
+        ))}
+
+        {(() => {
+          const total = ((profile as any)?.needs_percent || 0) + ((profile as any)?.wants_percent || 0) + ((profile as any)?.savings_percent || 0)
+          return (
+            <div className={`text-center text-[13px] font-bold ${total === 100 ? 'text-[#22c55e]' : 'text-[#b24f58]'}`}>
+              Total: {total}% {total === 100 ? '✅' : '⚠️ debe sumar 100%'}
+            </div>
+          )
+        })()}
+
+        <button onClick={async () => {
+          const needs = (profile as any)?.needs_percent || 0
+          const wants = (profile as any)?.wants_percent || 0
+          const savings = (profile as any)?.savings_percent || 0
+          if (needs + wants + savings !== 100) {
+            setMsg('⚠️ Los porcentajes deben sumar 100%')
+            return
+          }
+          await supabase.from('profiles').update({
+            needs_percent: needs,
+            wants_percent: wants,
+            savings_percent: savings,
+          }).eq('id', user.id)
+          setMsg('✅ Plan actualizado')
+          setTimeout(() => setMsg(''), 3000)
+        }}
+          className="w-full rounded-[14px] bg-[#5a4bc3] py-3 text-[14px] font-bold text-white">
+          Guardar plan
+        </button>
+        {msg && <p className="text-center text-[13px] font-medium text-[#22c55e]">{msg}</p>}
+      </div>
+    )}
+  </div>
+)}
         {seccion === 'historial' && (
           <div className="space-y-3">
             <button onClick={() => setSeccion('menu')} className="flex items-center gap-2 text-[#5a4bc3] text-[14px] font-medium">
