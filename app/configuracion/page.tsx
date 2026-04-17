@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
-import { useCurrency } from '../../lib/CurrencyContext'
+import { useCurrency } from '../../lib/currencycontext'
 export default function Configuracion() {
   const router = useRouter()
   const { setCurrency, symbol } = useCurrency()

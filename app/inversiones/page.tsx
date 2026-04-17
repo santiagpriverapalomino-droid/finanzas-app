@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
-import { useCurrency } from '../../lib/CurrencyContext'
+import { useCurrency } from '../../lib/currencycontext'
 
 const todayStr = () => new Date().toISOString().split('T')[0]
 

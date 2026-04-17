@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
-import { useCurrency } from '../../lib/CurrencyContext'
+import { useCurrency } from '../../lib/currencycontext'
 interface Goal {
   id: string; name: string; target_amount: number; saved_amount: number; deadline: string; currency?: string
 }
