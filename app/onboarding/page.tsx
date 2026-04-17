@@ -68,21 +68,47 @@ export default function Onboarding() {
 
       {/* PASO 0: Bienvenida */}
       {step === 0 && (
-        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <div className="w-20 h-20 rounded-[24px] bg-[#5a4bc3] flex items-center justify-center mb-6 shadow-lg">
-            <span className="text-4xl">💜</span>
+        <div className="flex-1 flex flex-col px-6 pt-12 pb-8">
+          {/* Logo y saludo */}
+          <div className="flex flex-col items-center text-center mb-8">
+            <div className="w-20 h-20 rounded-[24px] bg-[#5a4bc3] flex items-center justify-center mb-4 shadow-lg">
+              <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+                <polyline points="4,36 14,20 22,28 32,10 40,18" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="36" cy="8" r="4" fill="#FCD34D"/>
+                <circle cx="8" cy="38" r="3" fill="#22C55E"/>
+              </svg>
+            </div>
+            <h1 className="text-[26px] font-bold text-[#1f1f1f] mb-2">Hola, {firstName} 👋</h1>
+            <p className="text-[#5d594f] text-[15px] leading-relaxed">
+              Bienvenido a <span className="font-bold text-[#5a4bc3]">Finti</span> — tu gestor financiero inteligente hecho para jóvenes peruanos.
+            </p>
           </div>
-          <h1 className="text-2xl font-bold text-[#1f1f1f] mb-2">Hola, {firstName} 👋</h1>
-          <p className="text-[#5d594f] text-[15px] leading-relaxed mb-8">
-            Bienvenido a <span className="font-bold text-[#5a4bc3]">Finti</span>, tu gestor financiero inteligente.<br/>
-            En 2 minutos tendrás todo listo.
-          </p>
+
+          {/* Features */}
+          <div className="space-y-3 mb-8">
+            {[
+              { icon: '🤖', title: 'Asesor IA personalizado', desc: 'Pregúntale cualquier cosa sobre finanzas. Conoce tus datos y te responde en segundos.' },
+              { icon: '📸', title: 'Escanea tus boletas', desc: 'Saca foto a tu ticket y la IA registra el gasto automáticamente. Sin escribir nada.' },
+              { icon: '🏦', title: 'Importa tu estado de cuenta', desc: 'Sube tu estado del BCP, BBVA o Interbank y tus gastos se importan solos.' },
+              { icon: '📊', title: 'Dashboard completo', desc: 'Visualiza tus gastos, metas e inversiones en tiempo real con gráficas claras.' },
+              { icon: '📄', title: 'Exporta en PDF', desc: 'Genera un reporte mensual de tus finanzas para tenerlo siempre a mano.' },
+            ].map(f => (
+              <div key={f.title} className="flex items-start gap-4 bg-white rounded-[18px] px-4 py-3.5 border border-[#ebe6db]">
+                <span className="text-2xl flex-shrink-0 mt-0.5">{f.icon}</span>
+                <div>
+                  <p className="text-[14px] font-bold text-[#1f1f1f]">{f.title}</p>
+                  <p className="text-[12px] text-[#8c887d] mt-0.5">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
           <button
             onClick={() => setStep(1)}
-            className="w-full max-w-xs bg-[#5a4bc3] text-white rounded-[16px] py-4 font-bold text-[16px]"
-          >
-            Empezar →
+            className="w-full bg-[#5a4bc3] text-white rounded-[16px] py-4 font-bold text-[16px] shadow-lg">
+            Empezar — son solo 2 minutos 🚀
           </button>
+          <p className="text-center text-[12px] text-[#8c887d] mt-3">100% gratis · Sin tarjeta de crédito</p>
         </div>
       )}
 
