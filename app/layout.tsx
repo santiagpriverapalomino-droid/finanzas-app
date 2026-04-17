@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { CurrencyProvider } from '../lib/CurrencyContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -24,7 +25,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Finti" />
       </head>
       <body className={inter.className}>
-        {children}
+        <CurrencyProvider>
+          {children}
+        </CurrencyProvider>
         <script dangerouslySetInnerHTML={{__html: `
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {

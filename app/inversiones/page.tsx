@@ -4,10 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
-
-const fmt = (v: number, currency = 'PEN') => currency === 'USD'
-  ? `$${Math.abs(v).toLocaleString('es-PE', {minimumFractionDigits:0,maximumFractionDigits:2})}`
-  : `S/${Math.abs(v).toLocaleString('es-PE', {minimumFractionDigits:0,maximumFractionDigits:0})}`
+import { useCurrency } from '../../lib/CurrencyContext'
 
 const todayStr = () => new Date().toISOString().split('T')[0]
 
@@ -26,6 +23,7 @@ const TIPOS = [
 
 export default function Inversiones() {
   const router = useRouter()
+  const { fmt, symbol } = useCurrency()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [investments, setInvestments] = useState<Investment[]>([])
@@ -156,9 +154,9 @@ export default function Inversiones() {
         {/* Cards totales */}
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-[22px] bg-[#f3f0e8] p-4 border border-[#ebe6db]">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-[#726d62]">Total invertido (S/)</p>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-[#726d62]">Total invertido ({symbol})</p>
             <p className="mt-1 text-[22px] font-bold text-[#5a4bc3]">{fmt(totalPEN)}</p>
-            {totalUSD > 0 && <p className="text-[14px] font-bold text-[#1fa18b] mt-1">{fmt(totalUSD, 'USD')}</p>}
+            {totalUSD > 0 && <p className="text-[14px] font-bold text-[#1fa18b] mt-1">{`$${totalUSD.toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:0})}`}</p>}
           </div>
           <div className="rounded-[22px] bg-[#f3f0e8] p-4 border border-[#ebe6db]">
             <p className="text-[11px] font-bold uppercase tracking-wide text-[#726d62]">Rendimiento est.</p>
@@ -296,7 +294,7 @@ export default function Inversiones() {
               <div className="flex justify-between mb-2">
                 <div>
                   <p className="text-[11px] text-[#726d62] uppercase font-bold">Invertido</p>
-                  <p className="text-[18px] font-bold text-[#1f1f1f]">{fmt(inv.amount, currency)}</p>
+                  <p className="text-[18px] font-bold text-[#1f1f1f]">{inv.currency === 'USD' ? `$${Math.abs(Number(inv.amount)).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}` : fmt(Number(inv.amount))}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-[11px] text-[#726d62] uppercase font-bold">Rendimiento</p>

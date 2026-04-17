@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
-
+import { useCurrency } from '../../lib/CurrencyContext'
 const FIXED_CATEGORIES = ['Alimentación', 'Transporte', 'Entretenimiento', 'Compras']
 const CATEGORY_COLORS: Record<string, string> = {
   'Alimentación': '#5b4bc4',
@@ -30,10 +30,6 @@ const getBorderColor = (cat: string) => {
   }
 }
 
-const fmt = (v: number) => `S/${Math.abs(v).toLocaleString('es-PE', {minimumFractionDigits:0,maximumFractionDigits:0})}`
-const fmtUSD = (v: number) => `$${Math.abs(v).toLocaleString('es-PE', {minimumFractionDigits:0,maximumFractionDigits:2})}`
-const fmtAmount = (e: Expense) => e.currency === 'USD' ? fmtUSD(Number(e.amount)) : fmt(Number(e.amount))
-
 const todayStr = () => {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
@@ -49,6 +45,7 @@ const TrashIcon = () => (
 )
 
 function DonutChart({ expenses, customCats }: { expenses: Expense[], customCats: string[] }) {
+  const { fmt, symbol } = useCurrency()
   const penExpenses = expenses.filter(e => !e.currency || e.currency === 'PEN')
   const total = penExpenses.reduce((s, e) => s + Number(e.amount), 0)
   const [hovered, setHovered] = useState<string | null>(null)
@@ -124,6 +121,7 @@ function DonutChart({ expenses, customCats }: { expenses: Expense[], customCats:
 }
 
 function WeeklyBars({ expenses, profile, onDelete }: { expenses: Expense[], profile: any, onDelete: (id: string) => void }) {
+  const { fmt } = useCurrency()
   const days = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']
   const now = new Date()
   const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1
@@ -217,6 +215,7 @@ function WeeklyBars({ expenses, profile, onDelete }: { expenses: Expense[], prof
 }
 
 function MonthView({ expenses, customCats, onDelete }: { expenses: Expense[], customCats: string[], onDelete: (id: string) => void }) {
+  const { fmt } = useCurrency()
   const now = new Date()
   const monthExpenses = expenses.filter(e => {
     const d = new Date(e.date)
@@ -273,6 +272,9 @@ function MonthView({ expenses, customCats, onDelete }: { expenses: Expense[], cu
 
 export default function Gastos() {
   const router = useRouter()
+  const { fmt, currency, symbol } = useCurrency()
+  const fmtUSD = (v: number) => `$${Math.abs(v).toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:2})}`
+  const fmtAmount = (e: Expense) => e.currency === 'USD' ? fmtUSD(Number(e.amount)) : fmt(Number(e.amount))
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])

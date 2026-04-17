@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('monthly_income')
+      .select('monthly_income, main_currency')
       .eq('id', userId)
       .single()
 
@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
     const totalActual = (gastosMesActual || []).reduce((s: number, e: any) => s + Number(e.amount), 0)
     const income = profile?.monthly_income || 0
     const disponible = income - totalActual
+    const symbol = profile?.main_currency === 'USD' ? '$' : 'S/'
     const diff = totalAnterior > 0 ? ((totalActual - totalAnterior) / totalAnterior * 100) : 0
 
     // Gastos por categoría del mes actual
@@ -84,13 +85,13 @@ export async function POST(req: NextRequest) {
       <div style="background:white;border-radius:16px;padding:20px;display:flex;justify-content:space-between;align-items:center;">
         <div>
           <p style="margin:0;font-size:12px;color:#8c887d;text-transform:uppercase;font-weight:bold;">Gastado este mes</p>
-          <p style="margin:4px 0 0;font-size:24px;font-weight:bold;color:#b24f58;">S/${totalActual.toLocaleString('es-PE')}</p>
+          <p style="margin:4px 0 0;font-size:24px;font-weight:bold;color:#b24f58;">${symbol}${totalActual.toLocaleString('es-PE')}</p>
         </div>
         <p style="margin:0;font-size:13px;font-weight:bold;color:${diffColor};">${diffTexto}</p>
       </div>
       <div style="background:white;border-radius:16px;padding:20px;">
         <p style="margin:0;font-size:12px;color:#8c887d;text-transform:uppercase;font-weight:bold;">Disponible</p>
-        <p style="margin:4px 0 0;font-size:24px;font-weight:bold;color:#22c55e;">S/${disponible.toLocaleString('es-PE')}</p>
+        <p style="margin:4px 0 0;font-size:24px;font-weight:bold;color:#22c55e;">${symbol}${disponible.toLocaleString('es-PE')}</p>
       </div>
     </div>
 
@@ -101,7 +102,7 @@ export async function POST(req: NextRequest) {
       ${topCategorias.map(([cat, amt]) => `
         <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
           <span style="font-size:14px;color:#403c37;">${cat}</span>
-          <span style="font-size:14px;font-weight:bold;color:#1f1f1f;">S/${Number(amt).toLocaleString('es-PE')}</span>
+          <span style="font-size:14px;font-weight:bold;color:#1f1f1f;">${symbol}${Number(amt).toLocaleString('es-PE')}</span>
         </div>
       `).join('')}
     </div>

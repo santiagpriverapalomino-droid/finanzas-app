@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
-
+import { useCurrency } from '../../lib/CurrencyContext'
 export default function Configuracion() {
   const router = useRouter()
+  const { setCurrency, symbol } = useCurrency()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -56,18 +57,20 @@ setModoOscuroListo(true)
   }, [])
 
   const guardarPerfil = async () => {
-    if (!form.full_name || !form.monthly_income || !form.salary_day) return
-    setGuardando(true)
-    await supabase.from('profiles').update({
-      full_name: form.full_name,
-      monthly_income: parseFloat(form.monthly_income),
-      salary_day: parseInt(form.salary_day),
-      main_currency: profile?.main_currency || 'PEN',
-    }).eq('id', user.id)
-    setMsg('✅ Cambios guardados')
-    setTimeout(() => setMsg(''), 3000)
-    setGuardando(false)
-  }
+  if (!form.full_name || !form.monthly_income || !form.salary_day) return
+  setGuardando(true)
+  const nuevaMoneda = profile?.main_currency || 'PEN'
+  await supabase.from('profiles').update({
+    full_name: form.full_name,
+    monthly_income: parseFloat(form.monthly_income),
+    salary_day: parseInt(form.salary_day),
+    main_currency: nuevaMoneda,
+  }).eq('id', user.id)
+  setCurrency(nuevaMoneda as 'PEN' | 'USD')
+  setMsg('✅ Cambios guardados')
+  setTimeout(() => setMsg(''), 3000)
+  setGuardando(false)
+}
 
   const eliminarCuenta = async () => {
     if (!confirm('¿Estás seguro? Esta acción no se puede deshacer.')) return

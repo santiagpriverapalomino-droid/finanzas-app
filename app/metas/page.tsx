@@ -4,17 +4,14 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
-
+import { useCurrency } from '../../lib/CurrencyContext'
 interface Goal {
   id: string; name: string; target_amount: number; saved_amount: number; deadline: string; currency?: string
 }
 
-const fmt = (v: number, currency = 'PEN') => currency === 'USD'
-  ? `$${Math.abs(v).toLocaleString('es-PE', {minimumFractionDigits:0,maximumFractionDigits:2})}`
-  : `S/${Math.abs(v).toLocaleString('es-PE', {minimumFractionDigits:0,maximumFractionDigits:0})}`
-
 export default function Metas() {
   const router = useRouter()
+  const { fmt, symbol } = useCurrency()
   const [user, setUser] = useState<any>(null)
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
