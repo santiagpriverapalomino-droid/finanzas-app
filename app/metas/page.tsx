@@ -202,13 +202,14 @@ export default function Metas() {
       {/* Navbar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#ece8df]">
         <div className="max-w-md mx-auto flex">
-          {[
-            { href: '/dashboard', label: 'Inicio', active: false },
-            { href: '/gastos', label: 'Gastos', active: false },
-            { href: '/metas', label: 'Metas', active: true },
-            { href: '/inversiones', label: 'Inversiones', active: false },
-          ].map(item => (
-            <Link key={item.href} href={item.href} className={`flex-1 flex flex-col items-center py-3 gap-1 ${item.active ? 'text-[#5a4bc3]' : 'text-[#8c887d]'}`}>
+         {[
+            {href:'/dashboard',label:'Inicio',active:false,icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>},
+            {href:'/gastos',label:'Gastos',active:false,icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>},
+            {href:'/metas',label:'Metas',active:true,icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>},
+            {href:'/inversiones',label:'Inversiones',active:false,icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>},
+          ].map((item:any) => (
+            <Link key={item.href} href={item.href} className={`flex-1 flex flex-col items-center py-3 gap-1 ${item.active?'text-[#5a4bc3]':'text-[#8c887d]'}`}>
+              {item.icon}
               <span className="text-[11px] font-medium">{item.label}</span>
             </Link>
           ))}
