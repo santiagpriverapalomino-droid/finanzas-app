@@ -12,7 +12,8 @@ export default function Configuracion() {
   const [loading, setLoading] = useState(true)
   const [seccion, setSeccion] = useState<'menu' | 'perfil' | 'historial' | 'plan'>('menu')
   const [guardando, setGuardando] = useState(false)
-  const [modoOscuro, setModoOscuro] = useState(() => document.documentElement.classList.contains('dark'))
+  const [modoOscuro, setModoOscuro] = useState(false)
+const [modoOscuroListo, setModoOscuroListo] = useState(false)
   const [historial, setHistorial] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
   const [form, setForm] = useState({ full_name: '', monthly_income: '', salary_day: '' })
@@ -32,7 +33,7 @@ export default function Configuracion() {
       })
       const isDark = document.documentElement.classList.contains('dark')
       setModoOscuro(isDark)
-
+setModoOscuroListo(true)
       const { data: exp } = await supabase.from('expenses').select('amount, date, description, category').eq('user_id', user.id)
       setExpenses(exp || [])
       if (exp) {
@@ -184,7 +185,7 @@ export default function Configuracion() {
                 <div className="w-10 h-10 rounded-full bg-[#5a4bc3] flex items-center justify-center text-lg">🌙</div>
                 <span className="text-[15px] font-medium text-[#1f1f1f] dark:text-white">Modo oscuro</span>
               </div>
-              <button onClick={toggleOscuro}
+              <button onClick={toggleOscuro} disabled={!modoOscuroListo}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${modoOscuro?'bg-[#5a4bc3]':'bg-[#ddd7cc]'}`}>
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${modoOscuro?'translate-x-6':'translate-x-1'}`}/>
               </button>
