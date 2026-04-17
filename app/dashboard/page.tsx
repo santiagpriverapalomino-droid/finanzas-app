@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
-import { useCurrency } from '../../lib/currencycontext'
+
 const FIXED_CATEGORIES = ['Alimentación', 'Transporte', 'Entretenimiento', 'Compras']
 const CATEGORY_COLORS: Record<string, string> = {
   'Alimentación': '#5b4bc4',
@@ -19,6 +19,8 @@ const getCategoryColor = (cat: string, custom: string[] = []) => {
   const i = custom.indexOf(cat)
   return i >= 0 ? EXTRA_COLORS[i % EXTRA_COLORS.length] : '#94a3b8'
 }
+
+const fmt = (v: number) => `S/${Math.abs(v).toLocaleString('es-PE', {minimumFractionDigits:0,maximumFractionDigits:0})}`
 
 const NO_DATA_TIPS = [
   'La regla 50/30/20: destina 50% a necesidades, 30% a gustos y 20% a ahorro cada mes.',
@@ -41,7 +43,6 @@ interface Profile {
 }
 
 function DonutChart({ expenses, customCats }: { expenses: Expense[], customCats: string[] }) {
-  const { fmt } = useCurrency()
   const [hovered, setHovered] = useState<string | null>(null)
   const total = expenses.reduce((s,e) => s + Number(e.amount), 0)
 
@@ -113,7 +114,6 @@ function DonutChart({ expenses, customCats }: { expenses: Expense[], customCats:
 
 export default function Dashboard() {
   const router = useRouter()
-  const { fmt } = useCurrency()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])

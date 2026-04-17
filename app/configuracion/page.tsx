@@ -4,17 +4,15 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
-import { useCurrency } from '../../lib/currencycontext'
+
 export default function Configuracion() {
   const router = useRouter()
-  const { setCurrency, symbol } = useCurrency()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [seccion, setSeccion] = useState<'menu' | 'perfil' | 'historial' | 'plan'>('menu')
   const [guardando, setGuardando] = useState(false)
   const [modoOscuro, setModoOscuro] = useState(false)
-const [modoOscuroListo, setModoOscuroListo] = useState(false)
   const [historial, setHistorial] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
   const [form, setForm] = useState({ full_name: '', monthly_income: '', salary_day: '' })
@@ -34,7 +32,7 @@ const [modoOscuroListo, setModoOscuroListo] = useState(false)
       })
       const isDark = document.documentElement.classList.contains('dark')
       setModoOscuro(isDark)
-setModoOscuroListo(true)
+
       const { data: exp } = await supabase.from('expenses').select('amount, date, description, category').eq('user_id', user.id)
       setExpenses(exp || [])
       if (exp) {
@@ -57,20 +55,17 @@ setModoOscuroListo(true)
   }, [])
 
   const guardarPerfil = async () => {
-  if (!form.full_name || !form.monthly_income || !form.salary_day) return
-  setGuardando(true)
-  const nuevaMoneda = profile?.main_currency || 'PEN'
-  await supabase.from('profiles').update({
-    full_name: form.full_name,
-    monthly_income: parseFloat(form.monthly_income),
-    salary_day: parseInt(form.salary_day),
-    main_currency: nuevaMoneda,
-  }).eq('id', user.id)
-  setCurrency(nuevaMoneda as 'PEN' | 'USD')
-  setMsg('✅ Cambios guardados')
-  setTimeout(() => setMsg(''), 3000)
-  setGuardando(false)
-}
+    if (!form.full_name || !form.monthly_income || !form.salary_day) return
+    setGuardando(true)
+    await supabase.from('profiles').update({
+      full_name: form.full_name,
+      monthly_income: parseFloat(form.monthly_income),
+      salary_day: parseInt(form.salary_day),
+    }).eq('id', user.id)
+    setMsg('✅ Cambios guardados')
+    setTimeout(() => setMsg(''), 3000)
+    setGuardando(false)
+  }
 
   const eliminarCuenta = async () => {
     if (!confirm('¿Estás seguro? Esta acción no se puede deshacer.')) return
@@ -188,7 +183,7 @@ setModoOscuroListo(true)
                 <div className="w-10 h-10 rounded-full bg-[#5a4bc3] flex items-center justify-center text-lg">🌙</div>
                 <span className="text-[15px] font-medium text-[#1f1f1f] dark:text-white">Modo oscuro</span>
               </div>
-              <button onClick={toggleOscuro} disabled={!modoOscuroListo}
+              <button onClick={toggleOscuro}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${modoOscuro?'bg-[#5a4bc3]':'bg-[#ddd7cc]'}`}>
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${modoOscuro?'translate-x-6':'translate-x-1'}`}/>
               </button>
@@ -273,15 +268,7 @@ setModoOscuroListo(true)
                 <input type="text" value={form.full_name} onChange={e=>setForm(p=>({...p,full_name:e.target.value}))}
                   className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] dark:bg-[#252540] dark:border-[#2e2e50] dark:text-white px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
               </div>
-              <div>
-                  <p className="text-[11px] font-bold uppercase text-[#726d62] mb-1">Moneda principal</p>
-                  <select value={profile?.main_currency || 'PEN'} onChange={e => setProfile((p: any) => ({...p, main_currency: e.target.value}))}
-                    className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] dark:bg-[#252540] dark:border-[#2e2e50] dark:text-white px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]">
-                    <option value="PEN">🇵🇪 Soles (S/)</option>
-                    <option value="USD">🇺🇸 Dólares ($)</option>
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[11px] font-bold uppercase text-[#726d62] mb-1">Ingreso (S/)</p>
                   <input type="number" value={form.monthly_income} onChange={e=>setForm(p=>({...p,monthly_income:e.target.value}))}
