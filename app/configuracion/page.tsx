@@ -187,7 +187,40 @@ export default function Configuracion() {
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${modoOscuro?'translate-x-6':'translate-x-1'}`}/>
               </button>
             </div>
-
+{/* Notificaciones */}
+<div className="flex items-center justify-between rounded-[22px] bg-white dark:bg-[#1e1e32] border border-[#ebe6db] dark:border-[#2e2e50] p-4">
+  <div className="flex items-center gap-4">
+    <div className="w-10 h-10 rounded-full bg-[#5a4bc3] flex items-center justify-center text-lg">🔔</div>
+    <span className="text-[15px] font-medium text-[#1f1f1f] dark:text-white">Notificaciones</span>
+  </div>
+  <button onClick={async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert('Tu navegador no soporta notificaciones push.')
+      return
+    }
+    const permission = await Notification.requestPermission()
+    if (permission !== 'granted') {
+      alert('Debes permitir las notificaciones para activarlas.')
+      return
+    }
+    const reg = await navigator.serviceWorker.ready
+    const existing = await reg.pushManager.getSubscription()
+    const sub = existing || await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    })
+    const res = await fetch('/api/push', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id, subscription: sub })
+    })
+    if (res.ok) setMsg('✅ Notificaciones activadas')
+    else setMsg('❌ Error al activar notificaciones')
+  }}
+    className="text-[13px] font-bold text-white bg-[#5a4bc3] px-4 py-2 rounded-full">
+    Activar
+  </button>
+</div>
             {/* Exportar PDF */}
             <button onClick={exportarPDF}
               className="w-full flex items-center gap-4 rounded-[22px] bg-white dark:bg-[#1e1e32] border border-[#ebe6db] dark:border-[#2e2e50] p-4">
