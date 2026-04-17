@@ -41,6 +41,7 @@ interface Profile {
 }
 
 function DonutChart({ expenses, customCats }: { expenses: Expense[], customCats: string[] }) {
+  const { fmt } = useCurrency()
   const [hovered, setHovered] = useState<string | null>(null)
   const total = expenses.reduce((s,e) => s + Number(e.amount), 0)
 
