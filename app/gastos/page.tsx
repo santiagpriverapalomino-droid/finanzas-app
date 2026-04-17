@@ -122,6 +122,8 @@ function DonutChart({ expenses, customCats }: { expenses: Expense[], customCats:
 
 function WeeklyBars({ expenses, profile, onDelete }: { expenses: Expense[], profile: any, onDelete: (id: string) => void }) {
   const { fmt } = useCurrency()
+  const fmtUSD = (v: number) => `$${Math.abs(v).toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:2})}`
+  const fmtAmount = (e: Expense) => e.currency === 'USD' ? fmtUSD(Number(e.amount)) : fmt(Number(e.amount))
   const days = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']
   const now = new Date()
   const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1
@@ -216,6 +218,8 @@ function WeeklyBars({ expenses, profile, onDelete }: { expenses: Expense[], prof
 
 function MonthView({ expenses, customCats, onDelete }: { expenses: Expense[], customCats: string[], onDelete: (id: string) => void }) {
   const { fmt } = useCurrency()
+  const fmtUSD = (v: number) => `$${Math.abs(v).toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:2})}`
+  const fmtAmount = (e: Expense) => e.currency === 'USD' ? fmtUSD(Number(e.amount)) : fmt(Number(e.amount))
   const now = new Date()
   const monthExpenses = expenses.filter(e => {
     const d = new Date(e.date)
