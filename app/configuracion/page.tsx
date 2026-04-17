@@ -61,6 +61,7 @@ export default function Configuracion() {
       full_name: form.full_name,
       monthly_income: parseFloat(form.monthly_income),
       salary_day: parseInt(form.salary_day),
+      main_currency: profile?.main_currency || 'PEN',
     }).eq('id', user.id)
     setMsg('✅ Cambios guardados')
     setTimeout(() => setMsg(''), 3000)
@@ -268,7 +269,23 @@ export default function Configuracion() {
                 <input type="text" value={form.full_name} onChange={e=>setForm(p=>({...p,full_name:e.target.value}))}
                   className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] dark:bg-[#252540] dark:border-[#2e2e50] dark:text-white px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div>
+                  <p className="text-[11px] font-bold uppercase text-[#726d62] mb-1">Moneda principal</p>
+                  <select value={profile?.main_currency || 'PEN'} onChange={e => setProfile((p: any) => ({...p, main_currency: e.target.value}))}
+                    className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] dark:bg-[#252540] dark:border-[#2e2e50] dark:text-white px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]">
+                    <option value="PEN">🇵🇪 Soles (S/)</option>
+                    <option value="USD">🇺🇸 Dólares ($)</option>
+                  </select>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase text-[#726d62] mb-1">Moneda principal</p>
+                  <select value={profile?.main_currency || 'PEN'} onChange={e => setProfile((p: any) => ({...p, main_currency: e.target.value}))}
+                    className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] dark:bg-[#252540] dark:border-[#2e2e50] dark:text-white px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]">
+                    <option value="PEN">🇵🇪 Soles (S/)</option>
+                    <option value="USD">🇺🇸 Dólares ($)</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[11px] font-bold uppercase text-[#726d62] mb-1">Ingreso (S/)</p>
                   <input type="number" value={form.monthly_income} onChange={e=>setForm(p=>({...p,monthly_income:e.target.value}))}

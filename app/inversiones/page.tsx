@@ -5,20 +5,23 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 
-const fmt = (v: number) => `S/${Math.abs(v).toLocaleString('es-PE', {minimumFractionDigits:0,maximumFractionDigits:0})}`
+const fmt = (v: number, currency = 'PEN') => currency === 'USD'
+  ? `$${Math.abs(v).toLocaleString('es-PE', {minimumFractionDigits:0,maximumFractionDigits:2})}`
+  : `S/${Math.abs(v).toLocaleString('es-PE', {minimumFractionDigits:0,maximumFractionDigits:0})}`
+
 const todayStr = () => new Date().toISOString().split('T')[0]
 
 interface Investment {
   id: string; type: string; name: string; amount: number
-  yield_percent: number; start_date: string; end_date?: string; notes?: string
+  yield_percent: number; start_date: string; end_date?: string; notes?: string; currency?: string
 }
 
 const TIPOS = [
   { id: 'fondo_mutuo', label: 'Fondo mutuo', color: '#5b4bc4', rec: 'Rendimiento histórico 6-8% anual en Perú. Bajo riesgo. Puedes empezar desde S/100 en Credicorp, BBVA o Interbank. Liquidez en 24-48h.' },
-  { id: 'deposito_plazo', label: 'Depósito plazo', color: '#1fa18b', rec: 'Rendimiento 3-6% anual según plazo y banco. Riesgo casi nulo. Tu dinero queda bloqueado hasta el vencimiento. Ideal para dinero que no necesitarás pronto.' },
-  { id: 'acciones', label: 'Acciones / ETFs', color: '#f1a22e', rec: 'Rendimiento variable, históricamente 8-12% anual en ETFs globales (S&P 500). Riesgo medio-alto. Requiere horizonte de largo plazo (+5 años). En Perú puedes operar en la BVL o usar brokers internacionales.' },
-  { id: 'cripto', label: 'Cripto (máx. 10%)', color: '#db6334', rec: 'Alta volatilidad. Bitcoin y Ethereum son los más establecidos. Solo invierte lo que puedes perder completamente. Nunca más del 10% de tu portafolio. No es sustituto del ahorro.' },
-  { id: 'otro', label: 'Otro', color: '#94a3b8', rec: 'Incluye inmuebles, negocios propios, préstamos P2P, etc. Evalúa bien el riesgo y la liquidez antes de invertir.' },
+  { id: 'deposito_plazo', label: 'Depósito plazo', color: '#1fa18b', rec: 'Rendimiento 3-6% anual según plazo y banco. Riesgo casi nulo. Tu dinero queda bloqueado hasta el vencimiento.' },
+  { id: 'acciones', label: 'Acciones / ETFs', color: '#f1a22e', rec: 'Rendimiento variable, históricamente 8-12% anual en ETFs globales (S&P 500). Riesgo medio-alto. Requiere horizonte de largo plazo (+5 años).' },
+  { id: 'cripto', label: 'Cripto (máx. 10%)', color: '#db6334', rec: 'Alta volatilidad. Bitcoin y Ethereum son los más establecidos. Solo invierte lo que puedes perder completamente.' },
+  { id: 'otro', label: 'Otro', color: '#94a3b8', rec: 'Incluye inmuebles, negocios propios, préstamos P2P, etc.' },
 ]
 
 export default function Inversiones() {
@@ -31,10 +34,10 @@ export default function Inversiones() {
   const [editandoDist, setEditandoDist] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [form, setForm] = useState({
-    type: 'fondo_mutuo', name: '', amount: '', yield_percent: '', start_date: todayStr(), end_date: '', notes: ''
+    type: 'fondo_mutuo', name: '', amount: '', yield_percent: '',
+    start_date: todayStr(), end_date: '', notes: '', currency: 'PEN'
   })
 
-  // Distribución personalizable
   const [dist, setDist] = useState([
     { label: 'Fondos mutuos', pct: 40, color: '#5b4bc4' },
     { label: 'Depósito a plazo', pct: 30, color: '#1fa18b' },
@@ -58,7 +61,9 @@ export default function Inversiones() {
     init()
   }, [])
 
-  const totalInvertido = useMemo(() => investments.reduce((s,i) => s + Number(i.amount), 0), [investments])
+  const totalPEN = useMemo(() => investments.filter(i => !i.currency || i.currency === 'PEN').reduce((s,i) => s + Number(i.amount), 0), [investments])
+  const totalUSD = useMemo(() => investments.filter(i => i.currency === 'USD').reduce((s,i) => s + Number(i.amount), 0), [investments])
+  const totalInvertido = totalPEN
 
   const rendimientoPromedio = useMemo(() => {
     if (investments.length === 0) return 0
@@ -85,7 +90,7 @@ export default function Inversiones() {
     if (totalInvertido === 0) return alerts
     const criptoTotal = investments.filter(i => i.type === 'cripto').reduce((s,i) => s + Number(i.amount), 0)
     if (criptoTotal / totalInvertido > 0.1) {
-      alerts.push({ type: 'danger', msg: `Estás sobreinvertido en cripto (${Math.round(criptoTotal/totalInvertido*100)}%). El riesgo es muy alto. Se recomienda máximo 10% del portafolio.` })
+      alerts.push({ type: 'danger', msg: `Estás sobreinvertido en cripto (${Math.round(criptoTotal/totalInvertido*100)}%). Se recomienda máximo 10%.` })
     }
     const vencenProximo = investments.filter(i => {
       if (!i.end_date) return false
@@ -96,7 +101,7 @@ export default function Inversiones() {
       alerts.push({ type: 'warning', msg: `"${i.name}" vence en menos de 30 días. Decide si renovar o redirigir el capital.` })
     })
     if (income > 0 && totalInvertido < recomendadoMes * 3) {
-      alerts.push({ type: 'warning', msg: `Tu portafolio es pequeño aún. Intenta invertir al menos S/${recomendadoMes}/mes para hacer crecer tu patrimonio.` })
+      alerts.push({ type: 'warning', msg: `Intenta invertir al menos ${fmt(recomendadoMes)}/mes para hacer crecer tu patrimonio.` })
     }
     return alerts
   }, [investments, totalInvertido, income, recomendadoMes])
@@ -109,11 +114,12 @@ export default function Inversiones() {
     const { data, error } = await supabase.from('investments').insert({
       user_id: user.id, type: form.type, name: form.name,
       amount: parseFloat(form.amount), yield_percent: parseFloat(form.yield_percent) || 0,
-      start_date: form.start_date, end_date: form.end_date || null, notes: form.notes || null
+      start_date: form.start_date, end_date: form.end_date || null,
+      notes: form.notes || null, currency: form.currency
     }).select()
     if (!error && data) {
       setInvestments(prev => [...prev, data[0]])
-      setForm({ type:'fondo_mutuo', name:'', amount:'', yield_percent:'', start_date:todayStr(), end_date:'', notes:'' })
+      setForm({ type:'fondo_mutuo', name:'', amount:'', yield_percent:'', start_date:todayStr(), end_date:'', notes:'', currency:'PEN' })
       setIsAdding(false)
     }
     setGuardando(false)
@@ -150,8 +156,9 @@ export default function Inversiones() {
         {/* Cards totales */}
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-[22px] bg-[#f3f0e8] p-4 border border-[#ebe6db]">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-[#726d62]">Total invertido</p>
-            <p className="mt-1 text-[22px] font-bold text-[#5a4bc3]">{fmt(totalInvertido)}</p>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-[#726d62]">Total invertido (S/)</p>
+            <p className="mt-1 text-[22px] font-bold text-[#5a4bc3]">{fmt(totalPEN)}</p>
+            {totalUSD > 0 && <p className="text-[14px] font-bold text-[#1fa18b] mt-1">{fmt(totalUSD, 'USD')}</p>}
           </div>
           <div className="rounded-[22px] bg-[#f3f0e8] p-4 border border-[#ebe6db]">
             <p className="text-[11px] font-bold uppercase tracking-wide text-[#726d62]">Rendimiento est.</p>
@@ -159,7 +166,7 @@ export default function Inversiones() {
           </div>
         </div>
 
-        {/* Distribución recomendada editable */}
+        {/* Distribución recomendada */}
         <div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
           <div className="flex items-center justify-between mb-3">
             <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d]">Distribución recomendada</p>
@@ -187,12 +194,12 @@ export default function Inversiones() {
                       newDist[i] = {...newDist[i], pct: parseInt(e.target.value) || 0}
                       setDist(newDist)
                     }}
-                    className="w-16 rounded-[10px] border border-[#e5dfd5] bg-[#f7f4ed] px-2 py-1 text-[13px] font-bold text-center outline-none focus:border-[#5a4bc3]"/>
+                    className="w-16 rounded-[10px] border border-[#e5dfd5] bg-[#f7f4ed] px-2 py-1 text-[13px] font-bold text-center outline-none"/>
                 ) : (
                   <span className="text-[13px] font-bold text-[#1f1f1f]">{d.pct}%</span>
                 )}
               </div>
-              {editandoDist && (
+              {editandoDist ? (
                 <input type="range" min="0" max="100" value={d.pct}
                   onChange={e => {
                     const newDist = [...dist]
@@ -200,35 +207,27 @@ export default function Inversiones() {
                     setDist(newDist)
                   }}
                   className="w-full accent-[#5a4bc3]"/>
-              )}
-              {!editandoDist && (
+              ) : (
                 <div className="h-2 rounded-full bg-[#ece7dd]">
                   <div className="h-2 rounded-full transition-all" style={{width:`${d.pct}%`, background: d.color}}/>
                 </div>
               )}
             </div>
           ))}
-          {!editandoDist && (
-            <p className="text-[12px] text-[#8c887d] mt-2">
-              💡 Basado en perfil conservador-moderado para jóvenes peruanos. Ajusta según tu tolerancia al riesgo.
-            </p>
-          )}
         </div>
 
         {/* Proyección */}
         <div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
           <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d] mb-1">📈 Proyección de tu inversión</p>
           <p className="text-[12px] text-[#8c887d] mb-3">
-            {totalInvertido > 0 ? `Basado en ${fmt(totalInvertido)} invertidos al ${rendimientoPromedio.toFixed(1)}% anual` : 'Basado en 7% anual de referencia'}
+            {totalInvertido > 0 ? `Basado en ${fmt(totalInvertido)} al ${rendimientoPromedio.toFixed(1)}% anual` : 'Basado en 7% anual de referencia'}
           </p>
           <div className="grid grid-cols-3 gap-2">
             {[{label:'1 año', val:proyeccion.y1},{label:'3 años', val:proyeccion.y3},{label:'5 años', val:proyeccion.y5}].map(p => (
               <div key={p.label} className="rounded-[16px] bg-[#f3f0e8] p-3 text-center border border-[#ebe6db]">
                 <p className="text-[11px] text-[#726d62] font-bold uppercase">{p.label}</p>
                 <p className="text-[15px] font-bold text-[#5a4bc3] mt-1">{fmt(p.val)}</p>
-                {totalInvertido > 0 && (
-                  <p className="text-[10px] text-[#22c55e] font-bold">+{fmt(p.val - totalInvertido)}</p>
-                )}
+                {totalInvertido > 0 && <p className="text-[10px] text-[#22c55e] font-bold">+{fmt(p.val - totalInvertido)}</p>}
               </div>
             ))}
           </div>
@@ -239,7 +238,7 @@ export default function Inversiones() {
           <div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
             <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d] mb-2">🤖 ¿Cuánto debería invertir?</p>
             <p className="text-[13px] text-[#5d594f] mb-2">
-              Con tu ingreso de <span className="font-bold text-[#5a4bc3]">{fmt(income)}</span> te recomendamos invertir <span className="font-bold text-[#5a4bc3]">{fmt(recomendadoMes)}/mes</span> (10% del ingreso):
+              Con tu ingreso de <span className="font-bold text-[#5a4bc3]">{fmt(income)}</span> te recomendamos invertir <span className="font-bold text-[#5a4bc3]">{fmt(recomendadoMes)}/mes</span>:
             </p>
             <div className="space-y-1">
               {dist.map(d => (
@@ -252,9 +251,7 @@ export default function Inversiones() {
                 </div>
               ))}
             </div>
-            <p className="text-[12px] text-[#8c887d] mt-3">
-              💡 Primero asegúrate de tener un fondo de emergencia de 3 meses de gastos antes de invertir.
-            </p>
+            <p className="text-[12px] text-[#8c887d] mt-3">💡 Primero ten un fondo de emergencia de 3 meses antes de invertir.</p>
           </div>
         )}
 
@@ -280,6 +277,7 @@ export default function Inversiones() {
           </div>
         ) : investments.map(inv => {
           const tipo = TIPOS.find(t => t.id === inv.type)
+          const currency = inv.currency || 'PEN'
           return (
             <div key={inv.id} className="rounded-[22px] border border-[#ebe6db] bg-white p-4" style={{borderLeftWidth:'4px', borderLeftColor: tipo?.color || '#94a3b8'}}>
               <div className="flex items-start justify-between mb-2">
@@ -287,6 +285,7 @@ export default function Inversiones() {
                   <div className="flex items-center gap-2">
                     <p className="text-[15px] font-bold text-[#1f1f1f]">{inv.name}</p>
                     <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#e0f2fe] text-[#0369a1]">Activo</span>
+                    {currency === 'USD' && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#d1fae5] text-[#065f46]">💵 USD</span>}
                   </div>
                   <p className="text-[12px] text-[#8c887d]">{tipo?.label}</p>
                 </div>
@@ -297,19 +296,15 @@ export default function Inversiones() {
               <div className="flex justify-between mb-2">
                 <div>
                   <p className="text-[11px] text-[#726d62] uppercase font-bold">Invertido</p>
-                  <p className="text-[18px] font-bold text-[#1f1f1f]">{fmt(inv.amount)}</p>
+                  <p className="text-[18px] font-bold text-[#1f1f1f]">{fmt(inv.amount, currency)}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-[11px] text-[#726d62] uppercase font-bold">Rendimiento</p>
                   <p className="text-[18px] font-bold text-[#22c55e]">+{inv.yield_percent}%</p>
                 </div>
               </div>
-              {inv.end_date && (
-                <p className="text-[12px] text-[#8c887d]">Vence: {new Date(inv.end_date).toLocaleDateString('es-PE',{day:'numeric',month:'long',year:'numeric'})}</p>
-              )}
-              {inv.notes && (
-                <p className="text-[12px] text-[#8c887d] mt-1 italic">"{inv.notes}"</p>
-              )}
+              {inv.end_date && <p className="text-[12px] text-[#8c887d]">Vence: {new Date(inv.end_date).toLocaleDateString('es-PE',{day:'numeric',month:'long',year:'numeric'})}</p>}
+              {inv.notes && <p className="text-[12px] text-[#8c887d] mt-1 italic">"{inv.notes}"</p>}
             </div>
           )
         })}
@@ -331,7 +326,7 @@ export default function Inversiones() {
                 {TIPOS.map(t => (
                   <button key={t.id} onClick={() => setForm(p=>({...p,type:t.id}))}
                     className={`rounded-full px-3 py-1.5 text-[12px] font-bold transition-all ${form.type===t.id?'text-white':'border border-[#e5dfd5] text-[#47433d]'}`}
-                    style={form.type===t.id?{background:t.color}:{}}>
+                    style={form.type===t.id?{background:tipoInfo?.color}:{}}>
                     {t.label}
                   </button>
                 ))}
@@ -341,13 +336,20 @@ export default function Inversiones() {
                   <p className="text-[12px] text-[#166534]">ℹ️ {tipoInfo.rec}</p>
                 </div>
               )}
-              <input type="text" placeholder="Nombre / Entidad (ej: Fondo Mutuo Sura Conservador)" value={form.name}
+              <input type="text" placeholder="Nombre / Entidad (ej: Fondo Mutuo Sura)" value={form.name}
                 onChange={e=>setForm(p=>({...p,name:e.target.value}))}
                 className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
               <div className="grid grid-cols-2 gap-3">
-                <input type="number" placeholder="Monto (S/)" value={form.amount}
-                  onChange={e=>setForm(p=>({...p,amount:e.target.value}))}
-                  className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+                <div className="flex gap-2">
+                  <select value={form.currency} onChange={e=>setForm(p=>({...p,currency:e.target.value}))}
+                    className="rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-3 py-3 outline-none font-bold text-[#5a4bc3]">
+                    <option value="PEN">S/</option>
+                    <option value="USD">$</option>
+                  </select>
+                  <input type="number" placeholder="Monto" value={form.amount}
+                    onChange={e=>setForm(p=>({...p,amount:e.target.value}))}
+                    className="flex-1 rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+                </div>
                 <input type="number" placeholder="Rendimiento % anual" value={form.yield_percent}
                   onChange={e=>setForm(p=>({...p,yield_percent:e.target.value}))}
                   className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
@@ -402,4 +404,3 @@ export default function Inversiones() {
     </div>
   )
 }
-
