@@ -33,6 +33,7 @@ const getBorderColor = (cat: string) => {
 const fmt = (v: number) => `S/${Math.abs(v).toLocaleString('es-PE', {minimumFractionDigits:0,maximumFractionDigits:0})}`
 const fmtUSD = (v: number) => `$${Math.abs(v).toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:2})}`
 const fmtAmount = (e: Expense) => e.currency === 'USD' ? fmtUSD(Number(e.amount)) : fmt(Number(e.amount))
+const fmtFixed = (f: FixedExpense) => f.currency === 'USD' ? fmtUSD(Number(f.amount)) : fmt(Number(f.amount))
 
 const todayStr = () => {
   const now = new Date()
@@ -40,7 +41,7 @@ const todayStr = () => {
 }
 
 interface Expense { id: string; description: string; amount: number; category: string; date: string; currency?: string }
-interface FixedExpense { id: string; name: string; amount: number; day_of_month: number; category: string; active: boolean }
+interface FixedExpense { id: string; name: string; amount: number; day_of_month: number; category: string; active: boolean; currency?: string }
 
 const TrashIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -287,7 +288,7 @@ export default function Gastos() {
   const [showAddCat, setShowAddCat] = useState(false)
   const [newCatName, setNewCatName] = useState('')
   const [form, setForm] = useState({ description:'', category:'Alimentación', amount:'', date:todayStr(), currency:'PEN' })
-  const [fixedForm, setFixedForm] = useState({ name:'', amount:'', day_of_month:'1', category:'Alimentación', active:true })
+  const [fixedForm, setFixedForm] = useState({ name:'', amount:'', day_of_month:'1', category:'Alimentación', active:true, currency:'PEN' })
   const [isImporting, setIsImporting] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
   const [scanando, setScanando] = useState(false)
@@ -368,11 +369,12 @@ export default function Gastos() {
     setGuardando(true)
     const { data, error } = await supabase.from('fixed_expenses').insert({
       user_id: user.id, name: fixedForm.name, amount: parseFloat(fixedForm.amount),
-      day_of_month: parseInt(fixedForm.day_of_month), category: fixedForm.category, active: fixedForm.active
+      day_of_month: parseInt(fixedForm.day_of_month), category: fixedForm.category,
+      active: fixedForm.active, currency: fixedForm.currency
     }).select()
     if (!error && data) {
       setFixedExpenses(prev => [...prev, data[0]])
-      setFixedForm({ name:'', amount:'', day_of_month:'1', category:'Alimentación', active:true })
+      setFixedForm({ name:'', amount:'', day_of_month:'1', category:'Alimentación', active:true, currency:'PEN' })
       setIsAddingFixed(false)
     }
     setGuardando(false)
@@ -502,10 +504,10 @@ export default function Gastos() {
                       {f.active?'Activo':'Inactivo'}
                     </span>
                   </div>
-                  <p className="text-[12px] text-[#6b6559]">{f.category} · Día {f.day_of_month}</p>
+                  <p className="text-[12px] text-[#6b6559]">{f.category} · Día {f.day_of_month} {f.currency === 'USD' ? '· 💵 USD' : ''}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <p className="text-[14px] font-bold text-[#24211d]">{fmt(f.amount)}</p>
+                  <p className="text-[14px] font-bold text-[#24211d]">{fmtFixed(f)}</p>
                   <button onClick={() => toggleFijo(f.id)} className={`w-8 h-8 rounded-full flex items-center justify-center ${f.active?'bg-[#e0f2fe] text-[#0369a1]':'bg-[#f1f5f9] text-[#64748b]'}`}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                   </button>
@@ -767,9 +769,16 @@ export default function Gastos() {
                 onChange={e=>setFixedForm(p=>({...p,name:e.target.value}))}
                 className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
               <div className="grid grid-cols-2 gap-3">
-                <input type="number" placeholder="Monto S/" value={fixedForm.amount}
-                  onChange={e=>setFixedForm(p=>({...p,amount:e.target.value}))}
-                  className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+                <div className="flex rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] overflow-hidden">
+                  <select value={fixedForm.currency} onChange={e=>setFixedForm(p=>({...p,currency:e.target.value}))}
+                    className="bg-transparent pl-3 pr-1 py-3 outline-none text-[14px] font-bold text-[#5a4bc3]">
+                    <option value="PEN">S/</option>
+                    <option value="USD">$</option>
+                  </select>
+                  <input type="number" placeholder="Monto" value={fixedForm.amount}
+                    onChange={e=>setFixedForm(p=>({...p,amount:e.target.value}))}
+                    className="flex-1 bg-transparent px-2 py-3 outline-none min-w-0"/>
+                </div>
                 <input type="number" min="1" max="31" placeholder="Día de cobro" value={fixedForm.day_of_month}
                   onChange={e=>setFixedForm(p=>({...p,day_of_month:e.target.value}))}
                   className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
