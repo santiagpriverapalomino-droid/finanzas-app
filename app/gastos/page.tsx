@@ -31,12 +31,15 @@ const getBorderColor = (cat: string) => {
 }
 
 const fmt = (v: number) => `S/${Math.abs(v).toLocaleString('es-PE', {minimumFractionDigits:0,maximumFractionDigits:0})}`
+const fmtUSD = (v: number) => `$${Math.abs(v).toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:2})}`
+const fmtAmount = (e: Expense) => e.currency === 'USD' ? fmtUSD(Number(e.amount)) : fmt(Number(e.amount))
+
 const todayStr = () => {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
 }
 
-interface Expense { id: string; description: string; amount: number; category: string; date: string }
+interface Expense { id: string; description: string; amount: number; category: string; date: string; currency?: string }
 interface FixedExpense { id: string; name: string; amount: number; day_of_month: number; category: string; active: boolean }
 
 const TrashIcon = () => (
@@ -46,12 +49,13 @@ const TrashIcon = () => (
 )
 
 function DonutChart({ expenses, customCats }: { expenses: Expense[], customCats: string[] }) {
-  const total = expenses.reduce((s, e) => s + Number(e.amount), 0)
+  const penExpenses = expenses.filter(e => !e.currency || e.currency === 'PEN')
+  const total = penExpenses.reduce((s, e) => s + Number(e.amount), 0)
   const [hovered, setHovered] = useState<string | null>(null)
 
   const segments = useMemo(() => {
     const map: Record<string, number> = {}
-    expenses.forEach(e => { map[e.category] = (map[e.category] || 0) + Number(e.amount) })
+    penExpenses.forEach(e => { map[e.category] = (map[e.category] || 0) + Number(e.amount) })
     return Object.entries(map).filter(([,v]) => v > 0).map(([cat, val]) => ({
       cat, val, color: getCategoryColor(cat, customCats), pct: val / total * 100
     }))
@@ -83,7 +87,7 @@ function DonutChart({ expenses, customCats }: { expenses: Expense[], customCats:
 
   return (
     <div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
-      <p className="text-[11px] font-bold uppercase tracking-wide text-[#726d62] mb-3">Distribución de gastos</p>
+      <p className="text-[11px] font-bold uppercase tracking-wide text-[#726d62] mb-3">Distribución de gastos (S/)</p>
       <div className="flex items-center gap-4">
         <div className="relative flex-shrink-0">
           <svg viewBox="0 0 120 120" width="120" height="120" style={{transform:'rotate(-90deg)'}}>
@@ -128,7 +132,7 @@ function WeeklyBars({ expenses, profile, onDelete }: { expenses: Expense[], prof
     const target = new Date(now)
     target.setDate(now.getDate() - dayOfWeek + i)
     const dateStr = `${target.getFullYear()}-${String(target.getMonth()+1).padStart(2,'0')}-${String(target.getDate()).padStart(2,'0')}`
-    const total = expenses.filter(e => e.date === dateStr).reduce((s,e) => s + Number(e.amount), 0)
+    const total = expenses.filter(e => e.date === dateStr && (!e.currency || e.currency === 'PEN')).reduce((s,e) => s + Number(e.amount), 0)
     return { day, dateStr, total, isToday: i === dayOfWeek, dayNum: target.getDate() }
   })
 
@@ -146,7 +150,8 @@ function WeeklyBars({ expenses, profile, onDelete }: { expenses: Expense[], prof
     const start = new Date(now)
     start.setDate(now.getDate() - dayOfWeek)
     start.setHours(0,0,0,0)
-    const startStr = `${start.getFullYear()}-${String(start.getMonth()+1).padStart(2,'0')}-${String(start.getDate()).padStart(2,'0')}`; return e.date >= startStr
+    const startStr = `${start.getFullYear()}-${String(start.getMonth()+1).padStart(2,'0')}-${String(start.getDate()).padStart(2,'0')}`
+    return e.date >= startStr
   })
 
   return (
@@ -197,10 +202,10 @@ function WeeklyBars({ expenses, profile, onDelete }: { expenses: Expense[], prof
         <div key={e.id} className={`flex items-center justify-between p-4 rounded-[22px] bg-[#fcfbf8] border border-[#ebe6db] border-l-4 ${getBorderColor(e.category)}`}>
           <div className="pl-1">
             <p className="text-[14px] font-semibold text-[#26231f]">{e.description}</p>
-            {new Date(e.date + 'T12:00:00').toLocaleDateString('es-PE',{day:'numeric',month:'short'})}
+            <p className="text-[12px] text-[#8c887d]">{e.category} {e.currency === 'USD' ? '· 💵 USD' : ''} · {new Date(e.date + 'T12:00:00').toLocaleDateString('es-PE',{day:'numeric',month:'short'})}</p>
           </div>
           <div className="flex items-center gap-2">
-            <p className="text-[14px] font-bold text-[#b24f58]">-{fmt(Number(e.amount))}</p>
+            <p className="text-[14px] font-bold text-[#b24f58]">-{fmtAmount(e)}</p>
             <button onClick={() => onDelete(e.id)} className="w-8 h-8 rounded-full flex items-center justify-center text-[#9b968d] hover:text-[#b24f58]">
               <TrashIcon />
             </button>
@@ -217,7 +222,8 @@ function MonthView({ expenses, customCats, onDelete }: { expenses: Expense[], cu
     const d = new Date(e.date)
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
   })
-  const total = monthExpenses.reduce((s,e) => s + Number(e.amount), 0)
+  const totalPEN = monthExpenses.filter(e => !e.currency || e.currency === 'PEN').reduce((s,e) => s + Number(e.amount), 0)
+  const totalUSD = monthExpenses.filter(e => e.currency === 'USD').reduce((s,e) => s + Number(e.amount), 0)
 
   const weeks: Record<string, Expense[]> = {}
   monthExpenses.forEach(e => {
@@ -233,12 +239,13 @@ function MonthView({ expenses, customCats, onDelete }: { expenses: Expense[], cu
         <p className="text-[11px] font-bold uppercase tracking-wide text-[#726d62]">
           Total gastado en {now.toLocaleDateString('es-PE',{month:'long'})}
         </p>
-        <p className="mt-1 text-[24px] font-bold text-[#b24f58]">{fmt(total)}</p>
+        <p className="mt-1 text-[24px] font-bold text-[#b24f58]">{fmt(totalPEN)}</p>
+        {totalUSD > 0 && <p className="text-[14px] font-bold text-[#1fa18b] mt-1">{fmtUSD(totalUSD)} USD</p>}
         <p className="text-[12px] text-[#8c887d]">{monthExpenses.length} transacciones</p>
       </div>
       <DonutChart expenses={monthExpenses} customCats={customCats} />
       {Object.entries(weeks).map(([week, exps]) => {
-        const weekTotal = exps.reduce((s,e) => s + Number(e.amount), 0)
+        const weekTotal = exps.filter(e => !e.currency || e.currency === 'PEN').reduce((s,e) => s + Number(e.amount), 0)
         return (
           <div key={week} className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
             <div className="flex justify-between mb-2">
@@ -249,10 +256,10 @@ function MonthView({ expenses, customCats, onDelete }: { expenses: Expense[], cu
               <div key={e.id} className={`flex items-center justify-between py-2 border-b border-[#f0ebe0] last:border-0 pl-2 border-l-2 ${getBorderColor(e.category)}`}>
                 <div>
                   <p className="text-[13px] text-[#26231f]">{e.description}</p>
-                  <p className="text-[11px] text-[#8c887d]">{e.category}</p>
+                  <p className="text-[11px] text-[#8c887d]">{e.category} {e.currency === 'USD' ? '· 💵 USD' : ''}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <p className="text-[13px] font-semibold text-[#b24f58]">-{fmt(Number(e.amount))}</p>
+                  <p className="text-[13px] font-semibold text-[#b24f58]">-{fmtAmount(e)}</p>
                   <button onClick={() => onDelete(e.id)} className="w-7 h-7 rounded-full flex items-center justify-center text-[#9b968d] hover:text-[#b24f58]">
                     <TrashIcon />
                   </button>
@@ -279,14 +286,14 @@ export default function Gastos() {
   const [guardando, setGuardando] = useState(false)
   const [showAddCat, setShowAddCat] = useState(false)
   const [newCatName, setNewCatName] = useState('')
-  const [form, setForm] = useState({ description:'', category:'Alimentación', amount:'', date:todayStr() })
+  const [form, setForm] = useState({ description:'', category:'Alimentación', amount:'', date:todayStr(), currency:'PEN' })
   const [fixedForm, setFixedForm] = useState({ name:'', amount:'', day_of_month:'1', category:'Alimentación', active:true })
-const [isImporting, setIsImporting] = useState(false)
-const [isScanning, setIsScanning] = useState(false)
-const [scanando, setScanando] = useState(false)
-const [importando, setImportando] = useState(false)
-const [gastosImportados, setGastosImportados] = useState<any[]>([])
-const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set())
+  const [isImporting, setIsImporting] = useState(false)
+  const [isScanning, setIsScanning] = useState(false)
+  const [scanando, setScanando] = useState(false)
+  const [importando, setImportando] = useState(false)
+  const [gastosImportados, setGastosImportados] = useState<any[]>([])
+  const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     const init = async () => {
@@ -313,12 +320,13 @@ const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set())
       const d = new Date(e.date)
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
     })
-    const total = month.reduce((s,e) => s + Number(e.amount), 0)
+    const totalPEN = month.filter(e => !e.currency || e.currency === 'PEN').reduce((s,e) => s + Number(e.amount), 0)
+    const totalUSD = month.filter(e => e.currency === 'USD').reduce((s,e) => s + Number(e.amount), 0)
     const catMap: Record<string,number> = {}
     month.forEach(e => { catMap[e.category] = (catMap[e.category]||0) + Number(e.amount) })
     let top = 'Ninguna', max = 0
     Object.entries(catMap).forEach(([c,v]) => { if(v>max){max=v;top=c} })
-    return { total, count: month.length, topCategory: top }
+    return { totalPEN, totalUSD, count: month.length, topCategory: top }
   }, [expenses])
 
   const totalFixed = useMemo(() => fixedExpenses.filter(f=>f.active).reduce((s,f)=>s+Number(f.amount),0), [fixedExpenses])
@@ -345,11 +353,11 @@ const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set())
     setGuardando(true)
     const { data, error } = await supabase.from('expenses').insert({
       user_id: user.id, description: form.description, amount: parseFloat(form.amount),
-      category: form.category, date: form.date, is_fixed: false
+      category: form.category, date: form.date, currency: form.currency, is_fixed: false
     }).select()
     if (!error && data) {
       setExpenses(prev => [data[0], ...prev])
-      setForm({ description:'', category:'Alimentación', amount:'', date:todayStr() })
+      setForm({ description:'', category:'Alimentación', amount:'', date:todayStr(), currency:'PEN' })
       setIsAdding(false)
     }
     setGuardando(false)
@@ -403,27 +411,28 @@ const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set())
       <div className="px-4 pb-32 space-y-4 mt-2">
         <div>
           <div className="flex items-center justify-between">
-  <div>
-    <h1 className="text-[16px] font-bold text-[#1f1f1f]">Mis gastos</h1>
-    <p className="text-[13px] text-[#5d594f]">Gestiona y visualiza todos tus movimientos</p>
-  </div>
-  <div className="flex gap-2">
-    <button onClick={() => setIsScanning(true)}
-      className="flex items-center gap-1.5 bg-[#ede9ff] border border-[#c8bbf5] rounded-[12px] px-3 py-2 text-[12px] font-bold text-[#5a4bc3]">
-      📸 Boleta
-    </button>
-    <button onClick={() => { setIsImporting(true) }}
-      className="flex items-center gap-1.5 bg-[#ede9ff] border border-[#c8bbf5] rounded-[12px] px-3 py-2 text-[12px] font-bold text-[#5a4bc3]">
-      📄 Banco
-    </button>
-  </div>
-</div>
+            <div>
+              <h1 className="text-[16px] font-bold text-[#1f1f1f]">Mis gastos</h1>
+              <p className="text-[13px] text-[#5d594f]">Gestiona y visualiza todos tus movimientos</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setIsScanning(true)}
+                className="flex items-center gap-1.5 bg-[#ede9ff] border border-[#c8bbf5] rounded-[12px] px-3 py-2 text-[12px] font-bold text-[#5a4bc3]">
+                📸 Boleta
+              </button>
+              <button onClick={() => { setIsImporting(true) }}
+                className="flex items-center gap-1.5 bg-[#ede9ff] border border-[#c8bbf5] rounded-[12px] px-3 py-2 text-[12px] font-bold text-[#5a4bc3]">
+                📄 Banco
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-[22px] bg-[#f3f0e8] p-4 border border-[#ebe6db]">
             <p className="text-[11px] font-bold uppercase tracking-wide text-[#726d62]">Total gastado este mes</p>
-            <p className="mt-1 text-[24px] font-bold text-[#b24f58]">{fmt(summary.total)}</p>
+            <p className="mt-1 text-[24px] font-bold text-[#b24f58]">{fmt(summary.totalPEN)}</p>
+            {summary.totalUSD > 0 && <p className="text-[14px] font-bold text-[#1fa18b] mt-1">{fmtUSD(summary.totalUSD)} USD</p>}
           </div>
           <div className="grid grid-cols-2 gap-2 sm:col-span-2">
             <div className="rounded-[22px] bg-[#f3f0e8] p-4 border border-[#ebe6db]">
@@ -459,10 +468,10 @@ const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set())
               <div key={e.id} className={`flex items-center justify-between p-4 rounded-[22px] bg-[#fcfbf8] border border-[#ebe6db] border-l-4 ${getBorderColor(e.category)}`}>
                 <div className="pl-1 min-w-0">
                   <p className="text-[14px] font-semibold text-[#26231f] truncate">{e.description}</p>
-                  <p className="text-[12px] text-[#6b6559]">{e.category} · {new Date(e.date + 'T12:00:00').toLocaleDateString('es-PE',{day:'numeric',month:'short',year:'numeric'})}</p>
+                  <p className="text-[12px] text-[#6b6559]">{e.category} {e.currency === 'USD' ? '· 💵 USD' : ''} · {new Date(e.date + 'T12:00:00').toLocaleDateString('es-PE',{day:'numeric',month:'short',year:'numeric'})}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <p className="text-[14px] font-bold text-[#b24f58]">-{fmt(Number(e.amount))}</p>
+                  <p className="text-[14px] font-bold text-[#b24f58]">-{fmtAmount(e)}</p>
                   <button onClick={() => eliminar(e.id)} className="w-8 h-8 rounded-full flex items-center justify-center text-[#9b968d] hover:text-[#b24f58]">
                     <TrashIcon />
                   </button>
@@ -514,178 +523,179 @@ const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set())
         className="fixed bottom-24 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-[#5a4bc3] text-white flex items-center justify-center shadow-lg">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
-{isScanning && (
-  <div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm" onClick={() => setIsScanning(false)}>
-    <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-[#fcfbf8] p-5 pb-8" onClick={e => e.stopPropagation()}>
-      <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#ddd7cc]"/>
-      <h2 className="text-[18px] font-semibold text-[#24211d] mb-1">Escanear boleta</h2>
-      <p className="text-[13px] text-[#8c887d] mb-4">Saca foto a tu boleta o ticket y la IA extrae el gasto automáticamente.</p>
-      <label className={`flex flex-col items-center justify-center w-full h-36 rounded-[18px] border-2 border-dashed border-[#c8bbf5] bg-[#faf9ff] cursor-pointer ${scanando ? 'opacity-50' : 'hover:bg-[#ede9ff]'} transition-colors`}>
-        <input type="file" accept="image/*" capture="environment" className="hidden" disabled={scanando}
-          onChange={async (e) => {
-            const file = e.target.files?.[0]
-            if (!file) return
-            setScanando(true)
-            try {
-              const fd = new FormData()
-              fd.append('file', file)
-              const res = await fetch('/api/escanear', { method: 'POST', body: fd })
-              const data = await res.json()
-              if (data.gasto) {
-                setForm({
-                  description: data.gasto.descripcion,
-                  category: data.gasto.categoria,
-                  amount: String(data.gasto.monto),
-                  date: todayStr()
-                })
-                setIsScanning(false)
-                setIsAdding(true)
-              } else {
-                alert('No se pudo leer la boleta. Intenta con una foto más clara.')
-              }
-            } catch {
-              alert('Error al procesar la imagen.')
-            }
-            setScanando(false)
-          }}
-        />
-        {scanando ? (
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-8 h-8 border-4 border-[#5a4bc3] border-t-transparent rounded-full animate-spin"/>
-            <p className="text-[13px] text-[#5a4bc3] font-medium">Analizando boleta...</p>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-4xl">📸</span>
-            <p className="text-[14px] font-medium text-[#5a4bc3]">Toca para abrir cámara</p>
-            <p className="text-[12px] text-[#8c887d]">O selecciona una foto de tu galería</p>
-          </div>
-        )}
-      </label>
-      <div className="rounded-[14px] bg-[#f0fdf4] border border-[#bbf7d0] p-3 mt-4">
-        <p className="text-[12px] text-[#166534]">✓ Funciona con boletas, tickets, recibos y capturas de pantalla de pagos</p>
-      </div>
-    </div>
-  </div>
-)}
-{isImporting && (
-  <div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm" onClick={() => { setIsImporting(false); setGastosImportados([]); setSeleccionados(new Set()) }}>
-    <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-[#fcfbf8] p-5 pb-8 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-      <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#ddd7cc]"/>
-      <h2 className="text-[18px] font-semibold text-[#24211d] mb-1">Importar desde banco</h2>
-      <p className="text-[13px] text-[#8c887d] mb-4">Sube tu estado de cuenta (PDF o imagen) y la IA extrae los gastos automáticamente.</p>
 
-      {gastosImportados.length === 0 ? (
-        <div className="space-y-4">
-          <label className={`flex flex-col items-center justify-center w-full h-36 rounded-[18px] border-2 border-dashed border-[#c8bbf5] bg-[#faf9ff] cursor-pointer ${importando ? 'opacity-50' : 'hover:bg-[#ede9ff]'} transition-colors`}>
-            <input type="file" accept="image/*,application/pdf" className="hidden" disabled={importando}
-              onChange={async (e) => {
-                const file = e.target.files?.[0]
-                if (!file) return
-                setImportando(true)
-                try {
-                  const fd = new FormData()
-                  fd.append('file', file)
-                  const res = await fetch('/api/importar', { method: 'POST', body: fd })
-                  const data = await res.json()
-                  if (data.gastos && data.gastos.length > 0) {
-                    setGastosImportados(data.gastos)
-                    setSeleccionados(new Set(data.gastos.map((_: any, i: number) => i)))
-                  } else {
-                    alert('No se encontraron gastos en el archivo.')
+      {isScanning && (
+        <div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm" onClick={() => setIsScanning(false)}>
+          <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-[#fcfbf8] p-5 pb-8" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#ddd7cc]"/>
+            <h2 className="text-[18px] font-semibold text-[#24211d] mb-1">Escanear boleta</h2>
+            <p className="text-[13px] text-[#8c887d] mb-4">Saca foto a tu boleta o ticket y la IA extrae el gasto automáticamente.</p>
+            <label className={`flex flex-col items-center justify-center w-full h-36 rounded-[18px] border-2 border-dashed border-[#c8bbf5] bg-[#faf9ff] cursor-pointer ${scanando ? 'opacity-50' : 'hover:bg-[#ede9ff]'} transition-colors`}>
+              <input type="file" accept="image/*" capture="environment" className="hidden" disabled={scanando}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  setScanando(true)
+                  try {
+                    const fd = new FormData()
+                    fd.append('file', file)
+                    const res = await fetch('/api/escanear', { method: 'POST', body: fd })
+                    const data = await res.json()
+                    if (data.gasto) {
+                      setForm({
+                        description: data.gasto.descripcion,
+                        category: data.gasto.categoria,
+                        amount: String(data.gasto.monto),
+                        date: todayStr(),
+                        currency: 'PEN'
+                      })
+                      setIsScanning(false)
+                      setIsAdding(true)
+                    } else {
+                      alert('No se pudo leer la boleta. Intenta con una foto más clara.')
+                    }
+                  } catch {
+                    alert('Error al procesar la imagen.')
                   }
-                } catch {
-                  alert('Error al procesar el archivo.')
-                }
-                setImportando(false)
-              }}
-            />
-            {importando ? (
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-8 h-8 border-4 border-[#5a4bc3] border-t-transparent rounded-full animate-spin"/>
-                <p className="text-[13px] text-[#5a4bc3] font-medium">Analizando con IA...</p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2">
-                <span className="text-4xl">📄</span>
-                <p className="text-[14px] font-medium text-[#5a4bc3]">Toca para subir archivo</p>
-                <p className="text-[12px] text-[#8c887d]">PDF o imagen de estado de cuenta</p>
-              </div>
-            )}
-          </label>
-          <div className="rounded-[14px] bg-[#f0fdf4] border border-[#bbf7d0] p-3">
-            <p className="text-[12px] text-[#166534]">✓ Compatible con BCP, BBVA, Interbank, Scotiabank y capturas de Yape</p>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[14px] font-bold text-[#1f1f1f]">{gastosImportados.length} gastos detectados</p>
-            <button onClick={() => {
-              if (seleccionados.size === gastosImportados.length) {
-                setSeleccionados(new Set())
-              } else {
-                setSeleccionados(new Set(gastosImportados.map((_,i)=>i)))
-              }
-            }} className="text-[12px] font-bold text-[#5a4bc3]">
-              {seleccionados.size === gastosImportados.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
-            </button>
-          </div>
-
-          {gastosImportados.map((g, i) => (
-            <div key={i} onClick={() => {
-              const next = new Set(seleccionados)
-              if (next.has(i)) next.delete(i)
-              else next.add(i)
-              setSeleccionados(next)
-            }} className={`flex items-center gap-3 p-3 rounded-[16px] border cursor-pointer transition-all ${seleccionados.has(i) ? 'border-[#5a4bc3] bg-[#ede9ff]' : 'border-[#ebe6db] bg-white'}`}>
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${seleccionados.has(i) ? 'border-[#5a4bc3] bg-[#5a4bc3]' : 'border-[#ddd7cc]'}`}>
-                {seleccionados.has(i) && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold text-[#1f1f1f] truncate">{g.descripcion}</p>
-                <p className="text-[11px] text-[#8c887d]">{g.categoria} · {new Date(g.fecha + 'T12:00:00').toLocaleDateString('es-PE',{day:'numeric',month:'short',year:'numeric'})}</p>
-              </div>
-              <p className="text-[14px] font-bold text-[#b24f58] flex-shrink-0">-S/{g.monto}</p>
+                  setScanando(false)
+                }}
+              />
+              {scanando ? (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-8 h-8 border-4 border-[#5a4bc3] border-t-transparent rounded-full animate-spin"/>
+                  <p className="text-[13px] text-[#5a4bc3] font-medium">Analizando boleta...</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-4xl">📸</span>
+                  <p className="text-[14px] font-medium text-[#5a4bc3]">Toca para abrir cámara</p>
+                  <p className="text-[12px] text-[#8c887d]">O selecciona una foto de tu galería</p>
+                </div>
+              )}
+            </label>
+            <div className="rounded-[14px] bg-[#f0fdf4] border border-[#bbf7d0] p-3 mt-4">
+              <p className="text-[12px] text-[#166534]">✓ Funciona con boletas, tickets, recibos y capturas de pantalla de pagos</p>
             </div>
-          ))}
-
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            <button onClick={() => { setGastosImportados([]); setSeleccionados(new Set()) }}
-              className="rounded-[14px] border border-[#e2decb] py-3 text-[14px] text-[#8c887d]">
-              Volver
-            </button>
-            <button
-              disabled={seleccionados.size === 0 || guardando}
-              onClick={async () => {
-                setGuardando(true)
-                const selArray = Array.from(seleccionados).map(i => gastosImportados[i])
-                for (const g of selArray) {
-                  await supabase.from('expenses').insert({
-                    user_id: user.id,
-                    description: g.descripcion,
-                    amount: g.monto,
-                    category: g.categoria,
-                    date: g.fecha,
-                    is_fixed: false
-                  })
-                }
-                const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false })
-                setExpenses(exp || [])
-                setGastosImportados([])
-                setSeleccionados(new Set())
-                setIsImporting(false)
-                setGuardando(false)
-              }}
-              className="rounded-[14px] bg-[#5a4bc3] py-3 text-[14px] font-bold text-white disabled:opacity-40">
-              {guardando ? 'Guardando...' : `Importar ${seleccionados.size}`}
-            </button>
           </div>
         </div>
       )}
-    </div>
-  </div>
-)}
+
+      {isImporting && (
+        <div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm" onClick={() => { setIsImporting(false); setGastosImportados([]); setSeleccionados(new Set()) }}>
+          <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-[#fcfbf8] p-5 pb-8 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#ddd7cc]"/>
+            <h2 className="text-[18px] font-semibold text-[#24211d] mb-1">Importar desde banco</h2>
+            <p className="text-[13px] text-[#8c887d] mb-4">Sube tu estado de cuenta (PDF o imagen) y la IA extrae los gastos automáticamente.</p>
+            {gastosImportados.length === 0 ? (
+              <div className="space-y-4">
+                <label className={`flex flex-col items-center justify-center w-full h-36 rounded-[18px] border-2 border-dashed border-[#c8bbf5] bg-[#faf9ff] cursor-pointer ${importando ? 'opacity-50' : 'hover:bg-[#ede9ff]'} transition-colors`}>
+                  <input type="file" accept="image/*,application/pdf" className="hidden" disabled={importando}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      setImportando(true)
+                      try {
+                        const fd = new FormData()
+                        fd.append('file', file)
+                        const res = await fetch('/api/importar', { method: 'POST', body: fd })
+                        const data = await res.json()
+                        if (data.gastos && data.gastos.length > 0) {
+                          setGastosImportados(data.gastos)
+                          setSeleccionados(new Set(data.gastos.map((_: any, i: number) => i)))
+                        } else {
+                          alert('No se encontraron gastos en el archivo.')
+                        }
+                      } catch {
+                        alert('Error al procesar el archivo.')
+                      }
+                      setImportando(false)
+                    }}
+                  />
+                  {importando ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-8 h-8 border-4 border-[#5a4bc3] border-t-transparent rounded-full animate-spin"/>
+                      <p className="text-[13px] text-[#5a4bc3] font-medium">Analizando con IA...</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-4xl">📄</span>
+                      <p className="text-[14px] font-medium text-[#5a4bc3]">Toca para subir archivo</p>
+                      <p className="text-[12px] text-[#8c887d]">PDF o imagen de estado de cuenta</p>
+                    </div>
+                  )}
+                </label>
+                <div className="rounded-[14px] bg-[#f0fdf4] border border-[#bbf7d0] p-3">
+                  <p className="text-[12px] text-[#166534]">✓ Compatible con BCP, BBVA, Interbank, Scotiabank y capturas de Yape</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[14px] font-bold text-[#1f1f1f]">{gastosImportados.length} gastos detectados</p>
+                  <button onClick={() => {
+                    if (seleccionados.size === gastosImportados.length) {
+                      setSeleccionados(new Set())
+                    } else {
+                      setSeleccionados(new Set(gastosImportados.map((_,i)=>i)))
+                    }
+                  }} className="text-[12px] font-bold text-[#5a4bc3]">
+                    {seleccionados.size === gastosImportados.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
+                  </button>
+                </div>
+                {gastosImportados.map((g, i) => (
+                  <div key={i} onClick={() => {
+                    const next = new Set(seleccionados)
+                    if (next.has(i)) next.delete(i)
+                    else next.add(i)
+                    setSeleccionados(next)
+                  }} className={`flex items-center gap-3 p-3 rounded-[16px] border cursor-pointer transition-all ${seleccionados.has(i) ? 'border-[#5a4bc3] bg-[#ede9ff]' : 'border-[#ebe6db] bg-white'}`}>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${seleccionados.has(i) ? 'border-[#5a4bc3] bg-[#5a4bc3]' : 'border-[#ddd7cc]'}`}>
+                      {seleccionados.has(i) && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-[#1f1f1f] truncate">{g.descripcion}</p>
+                      <p className="text-[11px] text-[#8c887d]">{g.categoria} · {new Date(g.fecha + 'T12:00:00').toLocaleDateString('es-PE',{day:'numeric',month:'short',year:'numeric'})}</p>
+                    </div>
+                    <p className="text-[14px] font-bold text-[#b24f58] flex-shrink-0">-S/{g.monto}</p>
+                  </div>
+                ))}
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <button onClick={() => { setGastosImportados([]); setSeleccionados(new Set()) }}
+                    className="rounded-[14px] border border-[#e2decb] py-3 text-[14px] text-[#8c887d]">
+                    Volver
+                  </button>
+                  <button disabled={seleccionados.size === 0 || guardando}
+                    onClick={async () => {
+                      setGuardando(true)
+                      const selArray = Array.from(seleccionados).map(i => gastosImportados[i])
+                      for (const g of selArray) {
+                        await supabase.from('expenses').insert({
+                          user_id: user.id,
+                          description: g.descripcion,
+                          amount: g.monto,
+                          category: g.categoria,
+                          date: g.fecha,
+                          currency: 'PEN',
+                          is_fixed: false
+                        })
+                      }
+                      const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false })
+                      setExpenses(exp || [])
+                      setGastosImportados([])
+                      setSeleccionados(new Set())
+                      setIsImporting(false)
+                      setGuardando(false)
+                    }}
+                    className="rounded-[14px] bg-[#5a4bc3] py-3 text-[14px] font-bold text-white disabled:opacity-40">
+                    {guardando ? 'Guardando...' : `Importar ${seleccionados.size}`}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {isAdding && (
         <div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm" onClick={() => setIsAdding(false)}>
           <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-[#fcfbf8] p-5 pb-8 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -703,9 +713,16 @@ const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set())
                   {allCats.map(c=><option key={c} value={c}>{c}</option>)}
                   <option value="ADD_NEW">+ Nueva categoría</option>
                 </select>
-                <input type="number" placeholder="Monto en S/" value={form.amount}
-                  onChange={e => setForm(p=>({...p,amount:e.target.value}))}
-                  className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+                <div className="flex rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] overflow-hidden">
+                  <select value={form.currency} onChange={e=>setForm(p=>({...p,currency:e.target.value}))}
+                    className="bg-transparent pl-3 pr-1 py-3 outline-none text-[14px] font-bold text-[#5a4bc3]">
+                    <option value="PEN">S/</option>
+                    <option value="USD">$</option>
+                  </select>
+                  <input type="number" placeholder="Monto" value={form.amount}
+                    onChange={e => setForm(p=>({...p,amount:e.target.value}))}
+                    className="flex-1 bg-transparent px-2 py-3 outline-none min-w-0"/>
+                </div>
               </div>
               {showAddCat && (
                 <div className="flex gap-2">
@@ -799,4 +816,3 @@ const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set())
     </div>
   )
 }
-
