@@ -120,6 +120,8 @@ export default function Dashboard() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
+  const [racha, setRacha] = useState(0)
+const [logro, setLogro] = useState<string | null>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -142,7 +144,24 @@ export default function Dashboard() {
 
       const { data: g } = await supabase.from('goals').select('*').eq('user_id', user.id).order('created_at', {ascending:true})
       setGoals(g || [])
-
+// Calcular racha de días con gastos
+const { data: allExp } = await supabase.from('expenses').select('date').eq('user_id', user.id).order('date', { ascending: false })
+if (allExp && allExp.length > 0) {
+  const uniqueDays = [...new Set(allExp.map((e: any) => e.date))].sort().reverse()
+  let streak = 0
+  const today = new Date()
+  for (let i = 0; i < uniqueDays.length; i++) {
+    const expected = new Date(today)
+    expected.setDate(today.getDate() - i)
+    const expectedStr = `${expected.getFullYear()}-${String(expected.getMonth()+1).padStart(2,'0')}-${String(expected.getDate()).padStart(2,'0')}`
+    if (uniqueDays[i] === expectedStr) { streak++ } else { break }
+  }
+  setRacha(streak)
+  if (streak >= 30) setLogro('Mes completo')
+  else if (streak >= 14) setLogro('Dos semanas seguidas')
+  else if (streak >= 7) setLogro('Una semana seguida')
+  else if (streak >= 3) setLogro('Constancia inicial')
+}
       setLoading(false)
     }
     init()
@@ -268,7 +287,41 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+{/* Racha y logros */}
+{racha > 0 && (
+  <div className="rounded-[22px] bg-[#5a4bc3] p-4">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-[11px] text-white/70 font-semibold uppercase tracking-wide mb-1">Racha activa</p>
+        <p className="text-[28px] font-bold text-white leading-none">{racha} {racha === 1 ? 'día' : 'días'}</p>
+        <p className="text-[12px] text-white/80 mt-1">registrando gastos seguidos</p>
+      </div>
+      <div className="text-right">
+        <div className="flex gap-1.5 mb-2 justify-end flex-wrap max-w-[120px]">
+          {Array.from({length: Math.min(racha, 10)}).map((_, i) => (
+            <div key={i} className="w-2.5 h-2.5 rounded-full bg-white"/>
+          ))}
+          {racha < 10 && Array.from({length: 10 - racha}).map((_, i) => (
+            <div key={i} className="w-2.5 h-2.5 rounded-full bg-white/30"/>
+          ))}
+        </div>
+        <p className="text-[11px] text-white/70">Meta: 10 días</p>
+      </div>
+    </div>
+    {logro && (
+      <div className="mt-3 flex items-center gap-2 bg-white/15 rounded-[14px] px-3 py-2">
+        <span className="text-[18px]">🏆</span>
+        <div>
+          <p className="text-[12px] font-bold text-white">Logro desbloqueado</p>
+          <p className="text-[11px] text-white/80">{logro}</p>
+        </div>
+      </div>
+    )}
+  </div>
+)}
 
+{/* Donut chart */}
+<DonutChart expenses={expenses} customCats={customCats} />
         {/* Donut chart */}
         <DonutChart expenses={expenses} customCats={customCats} />
 
