@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
+import TourGuide from '../../components/tourguide'
 
 interface Goal {
   id: string
@@ -138,7 +139,7 @@ export default function Metas() {
                 </div>
 
                 {/* Simulador IA */}
-                <div className="rounded-[16px] bg-[#fdf8ec] border border-[#f0e6c8] p-3">
+                <div className="rounded-[16px] bg-[#fdf8ec] border border-[#f0e6c8] p-3" data-tour="simulador">
                   <div className="flex items-center gap-2 mb-2">
                     <span>✨</span>
                     <p className="text-[13px] font-bold text-[#92400e]">Simulador IA</p>
@@ -191,7 +192,7 @@ export default function Metas() {
 
         {/* Botón nueva meta */}
         {!showForm && (
-          <button onClick={() => setShowForm(true)}
+          <button data-tour="agregar-meta" onClick={() => setShowForm(true)}
             className="w-full rounded-[16px] bg-[#5a4bc3] py-4 text-[15px] font-bold text-white">
             + Nueva meta
           </button>
@@ -220,6 +221,23 @@ export default function Metas() {
       <Link href="/ia" className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-[#5a4bc3] flex items-center justify-center shadow-lg">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       </Link>
+      <TourGuide
+        tourKey="metas"
+        steps={[
+          {
+            target: 'agregar-meta',
+            title: '🎯 Crea una meta',
+            message: 'Define una meta de ahorro con monto y fecha límite. Las metas con fecha se cumplen más.',
+            position: 'top'
+          },
+          {
+            target: 'simulador',
+            title: '✨ Simulador IA',
+            message: 'Te calcula cuánto necesitas ahorrar por mes para llegar a tu meta a tiempo.',
+            position: 'top'
+          }
+        ]}
+      />
     </div>
   )
 }

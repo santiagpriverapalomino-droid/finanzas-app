@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
+import TourGuide from '../../components/tourguide'
 
 const FIXED_CATEGORIES = ['Alimentación', 'Transporte', 'Entretenimiento', 'Compras']
 const CATEGORY_COLORS: Record<string, string> = {
@@ -254,7 +255,7 @@ export default function Dashboard() {
         )}
 
         {/* Cards resumen */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3" data-tour="resumen">
           {[
             {title:'Gastado este mes', value:fmt(totalGastado), color:'text-[#b24f58]'},
             {title:'Disponible', value:fmt(disponible), color:'text-[#457d31]'},
@@ -413,10 +414,28 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Burbuja IA */}
-      <Link href="/ia" className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-[#5a4bc3] flex items-center justify-center shadow-lg">
+     {/* Burbuja IA */}
+      <Link href="/ia" data-tour="ia" className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-[#5a4bc3] flex items-center justify-center shadow-lg">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       </Link>
+
+      <TourGuide
+        tourKey="dashboard"
+        steps={[
+          {
+            target: 'resumen',
+            title: '💰 Tu resumen financiero',
+            message: 'Aquí ves cuánto gastaste este mes y cuánto te queda disponible de tu ingreso.',
+            position: 'bottom'
+          },
+          {
+            target: 'ia',
+            title: '🤖 Asistente IA',
+            message: 'Pregúntale cualquier cosa sobre tus finanzas. Analiza tus gastos y te da consejos personalizados.',
+            position: 'top'
+          }
+        ]}
+      />
     </div>
   )
 }

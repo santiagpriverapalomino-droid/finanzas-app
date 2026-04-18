@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
+import TourGuide from '../../components/tourguide'
 
 const fmt = (v: number) => `S/${Math.abs(v).toLocaleString('es-PE', {minimumFractionDigits:0,maximumFractionDigits:0})}`
 const todayStr = () => new Date().toISOString().split('T')[0]
@@ -216,8 +217,7 @@ export default function Inversiones() {
         </div>
 
         {/* Proyección */}
-        <div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
-          <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d] mb-1">📈 Proyección de tu inversión</p>
+<div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4" data-tour="proyeccion">          <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d] mb-1">📈 Proyección de tu inversión</p>
           <p className="text-[12px] text-[#8c887d] mb-3">
             {totalInvertido > 0 ? `Basado en ${fmt(totalInvertido)} invertidos al ${rendimientoPromedio.toFixed(1)}% anual` : 'Basado en 7% anual de referencia'}
           </p>
@@ -314,7 +314,7 @@ export default function Inversiones() {
           )
         })}
 
-        <button onClick={() => setIsAdding(true)}
+        <button data-tour="agregar-inversion" onClick={() => setIsAdding(true)}
           className="w-full rounded-[16px] bg-[#5a4bc3] py-4 text-[15px] font-bold text-white">
           + Agregar inversión
         </button>
@@ -399,6 +399,23 @@ export default function Inversiones() {
       <Link href="/ia" className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-[#5a4bc3] flex items-center justify-center shadow-lg">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       </Link>
+      <TourGuide
+        tourKey="inversiones"
+        steps={[
+          {
+            target: 'total-invertido',
+            title: '💼 Tu portafolio',
+            message: 'Aquí ves el total que tienes invertido y cuánto estás ganando en promedio.',
+            position: 'bottom'
+          },
+          {
+            target: 'proyeccion',
+            title: '📈 Proyección futura',
+            message: 'Mira cuánto crecerá tu dinero en 1, 5 y 10 años según tu rendimiento actual.',
+            position: 'bottom'
+          }
+        ]}
+      />
     </div>
   )
 }

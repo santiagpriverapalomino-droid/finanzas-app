@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
+import TourGuide from '../../components/tourguide'
 
 interface Mensaje { rol: 'ia' | 'user'; texto: string }
 
@@ -135,8 +136,7 @@ export default function ChatIA() {
       {/* Preguntas sugeridas */}
       {mensajes.length <= 1 && (
         <div className="px-4 pb-2 flex-shrink-0">
-          <div className="flex flex-wrap gap-2">
-            {PREGUNTAS_SUGERIDAS.map(p => (
+<div className="flex flex-wrap gap-2" data-tour="preguntas">            {PREGUNTAS_SUGERIDAS.map(p => (
               <button key={p} onClick={() => enviar(p)}
                 className="rounded-full border border-[#c8bbf5] bg-[#ede9ff] px-3 py-1.5 text-[12px] font-medium text-[#5a4bc3] hover:bg-[#ddd5ff] transition-colors">
                 {p}
@@ -148,8 +148,7 @@ export default function ChatIA() {
 
       {/* Input */}
       <div className="px-4 pb-24 flex-shrink-0">
-        <div className="flex gap-2 bg-white rounded-[22px] border border-[#ebe6db] p-2">
-          <input
+<div className="flex gap-2 bg-white rounded-[22px] border border-[#ebe6db] p-2" data-tour="input-ia">          <input
             type="text"
             placeholder="Asesor Finti está atento..."
             value={input}
@@ -178,6 +177,23 @@ export default function ChatIA() {
               <span className="text-[11px] font-medium">{item.label}</span>
             </Link>
           ))}
+          <TourGuide
+        tourKey="ia"
+        steps={[
+          {
+            target: 'preguntas',
+            title: '💡 Preguntas sugeridas',
+            message: 'Toca cualquiera de estas preguntas para empezar. Están pensadas para sacarle el máximo provecho a tu asesor.',
+            position: 'bottom'
+          },
+          {
+            target: 'input-ia',
+            title: '🤖 Tu asesor financiero',
+            message: 'Escribe cualquier pregunta sobre tus finanzas. Conoce tus gastos y te da consejos personalizados.',
+            position: 'top'
+          }
+        ]}
+      />
         </div>
       </div>
     </div>

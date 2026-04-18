@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
+import TourGuide from '../../components/tourguide'
 
 const FIXED_CATEGORIES = ['Alimentación', 'Transporte', 'Entretenimiento', 'Compras']
 const CATEGORY_COLORS: Record<string, string> = {
@@ -417,7 +418,7 @@ export default function Gastos() {
               <h1 className="text-[16px] font-bold text-[#1f1f1f]">Mis gastos</h1>
               <p className="text-[13px] text-[#5d594f]">Gestiona y visualiza todos tus movimientos</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2" data-tour="boleta-banco">
               <button onClick={() => setIsScanning(true)}
                 className="flex items-center gap-1.5 bg-[#ede9ff] border border-[#c8bbf5] rounded-[12px] px-3 py-2 text-[12px] font-bold text-[#5a4bc3]">
                 📸 Boleta
@@ -521,7 +522,7 @@ export default function Gastos() {
         )}
       </div>
 
-      <button onClick={() => filter==='fixed' ? setIsAddingFixed(true) : setIsAdding(true)}
+      <button data-tour="agregar" onClick={() => filter==='fixed' ? setIsAddingFixed(true) : setIsAdding(true)}
         className="fixed bottom-24 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-[#5a4bc3] text-white flex items-center justify-center shadow-lg">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
@@ -822,6 +823,23 @@ export default function Gastos() {
       <Link href="/ia" className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-[#5a4bc3] flex items-center justify-center shadow-lg z-40">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       </Link>
+      <TourGuide
+        tourKey="gastos"
+        steps={[
+          {
+            target: 'agregar',
+            title: '➕ Registra tus gastos',
+            message: 'Toca aquí para agregar un gasto. Puedes registrarlo en soles o dólares.',
+            position: 'top'
+          },
+          {
+            target: 'boleta-banco',
+            title: '📸 Importa automáticamente',
+            message: 'Saca foto a tu boleta o sube tu estado de cuenta y la IA extrae los gastos por ti.',
+            position: 'bottom'
+          }
+        ]}
+      />
     </div>
   )
 }
