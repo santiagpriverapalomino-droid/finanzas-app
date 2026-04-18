@@ -57,10 +57,34 @@ export default function Onboarding() {
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] || 'ahí'
 
   const tutorialPasos = [
-    { icon: '📊', title: 'Registra tus gastos', desc: 'Agrega cada gasto del día. La IA los categoriza automáticamente para darte un análisis real de tus hábitos.' },
-    { icon: '🎯', title: 'Crea metas de ahorro', desc: 'Define hacia dónde quieres llegar — un viaje, un fondo de emergencia, lo que sea. Te ayudamos a llegar.' },
-    { icon: '📈', title: 'Invierte con confianza', desc: 'Conoce opciones de inversión adaptadas al contexto peruano: fondos mutuos, depósitos a plazo y más.' },
-    { icon: '🤖', title: 'Tu asesor IA siempre disponible', desc: 'Pregúntale cualquier cosa sobre finanzas. Conoce tus datos y te da consejos personalizados en tiempo real.' },
+    {
+      icon: '📊',
+      title: 'Registra tus gastos',
+      desc: 'Agrega cada gasto del día. La IA los categoriza automáticamente para darte un análisis real de tus hábitos.',
+      tips: ['Escanea tu boleta con la cámara', 'Importa tu estado de cuenta del banco', 'Registra en soles o dólares'],
+      dato: { numero: '73%', texto: 'de jóvenes no sabe en qué gasta su dinero. Finti lo cambia.' }
+    },
+    {
+      icon: '🎯',
+      title: 'Crea metas de ahorro',
+      desc: 'Define hacia dónde quieres llegar — un viaje, un fondo de emergencia, lo que sea. Te ayudamos a llegar.',
+      tips: ['Pon una fecha límite a tu meta', 'El simulador calcula cuánto ahorrar por mes', 'Abona cuando quieras y ve tu progreso'],
+      dato: { numero: '2x', texto: 'más probable cumplir una meta si tiene fecha límite.' }
+    },
+    {
+      icon: '📈',
+      title: 'Invierte con confianza',
+      desc: 'Conoce opciones de inversión adaptadas al contexto peruano: fondos mutuos, depósitos a plazo y más.',
+      tips: ['Registra fondos mutuos, acciones y ETFs', 'Ve la proyección de tu dinero a 1, 5 y 10 años', 'Compara el rendimiento de tus inversiones'],
+      dato: { numero: 'S/50', texto: 'es suficiente para empezar a invertir en fondos mutuos en Perú.' }
+    },
+    {
+      icon: '🤖',
+      title: 'Tu asesor IA siempre disponible',
+      desc: 'Pregúntale cualquier cosa sobre finanzas. Conoce tus datos y te da consejos personalizados en tiempo real.',
+      tips: ['Conoce tu AFP, CTS y opciones de ahorro', 'Analiza tus gastos y sugiere mejoras', 'Disponible 24/7, responde en segundos'],
+      dato: { numero: '100%', texto: 'de contexto peruano — entiende soles, Yape, BCP y más.' }
+    },
   ]
 
   return (
@@ -226,11 +250,26 @@ export default function Onboarding() {
           </div>
 
           <div className="flex-1">
-            <div className="rounded-[22px] bg-white border border-[#e2decb] p-6 mb-6">
-              <div className="text-5xl mb-4">{tutorialPasos[tutorialStep].icon}</div>
-              <h3 className="text-[18px] font-bold text-[#1f1f1f] mb-2">{tutorialPasos[tutorialStep].title}</h3>
-              <p className="text-[14px] text-[#5d594f] leading-relaxed">{tutorialPasos[tutorialStep].desc}</p>
-            </div>
+            <div className="rounded-[22px] bg-white border border-[#e2decb] p-6 mb-4">
+  <div className="text-5xl mb-4">{tutorialPasos[tutorialStep].icon}</div>
+  <h3 className="text-[18px] font-bold text-[#1f1f1f] mb-2">{tutorialPasos[tutorialStep].title}</h3>
+  <p className="text-[14px] text-[#5d594f] leading-relaxed mb-4">{tutorialPasos[tutorialStep].desc}</p>
+  <div className="border-t border-[#f0ebe0] pt-4 space-y-2">
+    {tutorialPasos[tutorialStep].tips.map((tip, i) => (
+      <div key={i} className="flex items-center gap-2">
+        <div className="w-5 h-5 rounded-full bg-[#ede9ff] flex items-center justify-center flex-shrink-0">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5a4bc3" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <p className="text-[13px] text-[#47433d]">{tip}</p>
+      </div>
+    ))}
+  </div>
+</div>
+
+<div className="rounded-[16px] bg-[#ede9ff] border border-[#c8bbf5] px-4 py-3 mb-6 flex items-center gap-3">
+  <p className="text-[22px] font-bold text-[#5a4bc3] flex-shrink-0">{tutorialPasos[tutorialStep].dato.numero}</p>
+  <p className="text-[13px] text-[#3d2fa0] leading-snug">{tutorialPasos[tutorialStep].dato.texto}</p>
+</div>
 
             {/* Dots */}
             <div className="flex justify-center gap-2 mb-8">
