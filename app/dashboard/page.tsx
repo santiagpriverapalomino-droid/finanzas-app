@@ -322,8 +322,6 @@ if (allExp && allExp.length > 0) {
 
 {/* Donut chart */}
 <DonutChart expenses={expenses} customCats={customCats} />
-        {/* Donut chart */}
-        <DonutChart expenses={expenses} customCats={customCats} />
 
         {/* Esta semana */}
         <div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
