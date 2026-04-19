@@ -876,7 +876,47 @@ const guardarEdicion = async () => {
           ))}
         </div>
       </div>
-
+{editando && (
+  <div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm" onClick={() => setEditando(null)}>
+    <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-[#fcfbf8] p-5 pb-8 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#ddd7cc]"/>
+      <h2 className="text-[18px] font-semibold text-[#24211d] mb-4">Editar gasto</h2>
+      <div className="space-y-3">
+        <input type="text" placeholder="¿En qué gastaste?" value={editForm.description}
+          onChange={e => setEditForm(p=>({...p,description:e.target.value}))}
+          className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+        <div className="grid grid-cols-2 gap-3">
+          <select value={editForm.category} onChange={e => setEditForm(p=>({...p,category:e.target.value}))}
+            className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none">
+            {allCats.map(c=><option key={c} value={c}>{c}</option>)}
+          </select>
+          <div className="flex rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] overflow-hidden">
+            <select value={editForm.currency} onChange={e=>setEditForm(p=>({...p,currency:e.target.value}))}
+              className="bg-transparent pl-3 pr-1 py-3 outline-none text-[14px] font-bold text-[#5a4bc3]">
+              <option value="PEN">S/</option>
+              <option value="USD">$</option>
+            </select>
+            <input type="number" placeholder="Monto" value={editForm.amount}
+              onChange={e => setEditForm(p=>({...p,amount:e.target.value}))}
+              className="flex-1 bg-transparent px-2 py-3 outline-none min-w-0"/>
+          </div>
+        </div>
+        <input type="date" value={editForm.date} onChange={e=>setEditForm(p=>({...p,date:e.target.value}))}
+          className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => { eliminar(editando.id); setEditando(null) }}
+            className="rounded-[18px] border border-[#f7c1c1] bg-[#fcebeb] py-3 text-[14px] font-semibold text-[#a32d2d]">
+            Eliminar
+          </button>
+          <button onClick={guardarEdicion} disabled={guardando||!editForm.description||!editForm.amount}
+            className="rounded-[18px] bg-[#5a4bc3] py-3 text-[14px] font-semibold text-white disabled:opacity-40">
+            {guardando?'Guardando...':'Guardar cambios'}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
       <Link href="/ia" className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-[#5a4bc3] flex items-center justify-center shadow-lg z-40">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       </Link>
