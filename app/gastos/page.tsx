@@ -413,15 +413,27 @@ const abrirEditar = (e: Expense) => {
 const guardarEdicion = async () => {
   if (!editando || !editForm.description || !editForm.amount) return
   setGuardando(true)
-  await supabase.from('expenses').update({
-    description: editForm.description,
-    amount: parseFloat(editForm.amount),
-    category: editForm.category,
-    date: editForm.date,
-    currency: editForm.currency,
-  }).eq('id', editando.id)
-  const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false })
-  setExpenses(exp || [])
+  const esFijo = fixedExpenses.some(f => f.id === editando.id)
+  if (esFijo) {
+    await supabase.from('fixed_expenses').update({
+      name: editForm.description,
+      amount: parseFloat(editForm.amount),
+      category: editForm.category,
+      currency: editForm.currency,
+    }).eq('id', editando.id)
+    const { data: fixed } = await supabase.from('fixed_expenses').select('*').eq('user_id', user.id).order('created_at')
+    setFixedExpenses(fixed || [])
+  } else {
+    await supabase.from('expenses').update({
+      description: editForm.description,
+      amount: parseFloat(editForm.amount),
+      category: editForm.category,
+      date: editForm.date,
+      currency: editForm.currency,
+    }).eq('id', editando.id)
+    const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false })
+    setExpenses(exp || [])
+  }
   setEditando(null)
   setGuardando(false)
 }
