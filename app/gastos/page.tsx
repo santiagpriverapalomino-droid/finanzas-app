@@ -464,10 +464,34 @@ export default function Gastos() {
         {filter === 'all' && (
           <div className="space-y-2">
             {expenses.length === 0 ? (
-              <div className="py-12 text-center">
-                <p className="text-[15px] font-medium text-[#26231f]">Sin gastos registrados</p>
-              </div>
-            ) : expenses.map(e => (
+  <div className="rounded-[22px] bg-[#fcfbf8] border border-[#ebe6db] p-6 text-center">
+    <div className="w-14 h-14 bg-[#ede9ff] rounded-[18px] flex items-center justify-center mx-auto mb-3">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5a4bc3" strokeWidth="1.5">
+        <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+      </svg>
+    </div>
+    <p className="text-[15px] font-semibold text-[#26231f] mb-1">Sin gastos registrados</p>
+    <p className="text-[13px] text-[#8c887d] leading-5 mb-4">Registra tu primer gasto y empieza a entender en qué se va tu dinero.</p>
+    <div className="grid grid-cols-3 gap-2 mb-4">
+      <button onClick={() => setIsScanning(true)}
+        className="flex flex-col items-center gap-1 bg-[#f5f3ee] rounded-[14px] p-3 border border-[#ebe6db]">
+        <span className="text-[20px]">📸</span>
+        <p className="text-[11px] text-[#5d594f] font-medium">Boleta</p>
+      </button>
+      <button onClick={() => setIsAdding(true)}
+        className="flex flex-col items-center gap-1 bg-[#f5f3ee] rounded-[14px] p-3 border border-[#ebe6db]">
+        <span className="text-[20px]">✏️</span>
+        <p className="text-[11px] text-[#5d594f] font-medium">Manual</p>
+      </button>
+      <button onClick={() => setIsImporting(true)}
+        className="flex flex-col items-center gap-1 bg-[#f5f3ee] rounded-[14px] p-3 border border-[#ebe6db]">
+        <span className="text-[20px]">📄</span>
+        <p className="text-[11px] text-[#5d594f] font-medium">Banco</p>
+      </button>
+    </div>
+    <p className="text-[11px] text-[#8c887d]">Los usuarios que registran a diario ahorran un 23% más</p>
+  </div>
+) : expenses.map(e => (
               <div key={e.id} className={`flex items-center justify-between p-4 rounded-[22px] bg-[#fcfbf8] border border-[#ebe6db] border-l-4 ${getBorderColor(e.category)}`}>
                 <div className="pl-1 min-w-0">
                   <p className="text-[14px] font-semibold text-[#26231f] truncate">{e.description}</p>
