@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import TourGuide from '../../components/tourguide'
 
+
 const FIXED_CATEGORIES = ['Alimentación', 'Transporte', 'Entretenimiento', 'Compras']
 const CATEGORY_COLORS: Record<string, string> = {
   'Alimentación': '#5b4bc4',
@@ -296,6 +297,8 @@ export default function Gastos() {
   const [importando, setImportando] = useState(false)
   const [gastosImportados, setGastosImportados] = useState<any[]>([])
   const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set())
+  const [editando, setEditando] = useState<Expense | null>(null)
+const [editForm, setEditForm] = useState({ description: '', category: 'Alimentación', amount: '', date: '', currency: 'PEN' })
 
   useEffect(() => {
     const init = async () => {
@@ -382,13 +385,40 @@ export default function Gastos() {
   }
 
   const agregarCat = async () => {
-    if (!newCatName.trim()) return
-    const newCats = [...customCats, newCatName.trim()]
-    await supabase.from('profiles').update({ custom_categories: newCats }).eq('id', user.id)
-    setProfile((p: any) => ({...p, custom_categories: newCats}))
-    setForm(p => ({...p, category: newCatName.trim()}))
-    setNewCatName(''); setShowAddCat(false)
-  }
+  if (!newCatName.trim()) return
+  const newCats = [...customCats, newCatName.trim()]
+  await supabase.from('profiles').update({ custom_categories: newCats }).eq('id', user.id)
+  setProfile((p: any) => ({...p, custom_categories: newCats}))
+  setForm(p => ({...p, category: newCatName.trim()}))
+  setNewCatName(''); setShowAddCat(false)
+}
+
+const abrirEditar = (e: Expense) => {
+  setEditando(e)
+  setEditForm({
+    description: e.description,
+    category: e.category,
+    amount: String(e.amount),
+    date: e.date,
+    currency: e.currency || 'PEN'
+  })
+}
+
+const guardarEdicion = async () => {
+  if (!editando || !editForm.description || !editForm.amount) return
+  setGuardando(true)
+  await supabase.from('expenses').update({
+    description: editForm.description,
+    amount: parseFloat(editForm.amount),
+    category: editForm.category,
+    date: editForm.date,
+    currency: editForm.currency,
+  }).eq('id', editando.id)
+  const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false })
+  setExpenses(exp || [])
+  setEditando(null)
+  setGuardando(false)
+}
 
   if (loading) return <div className="min-h-screen bg-[#f5f3ee] flex items-center justify-center"><p className="text-[#8c887d]">Cargando...</p></div>
 
@@ -499,9 +529,12 @@ export default function Gastos() {
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="text-[14px] font-bold text-[#b24f58]">-{fmtAmount(e)}</p>
-                  <button onClick={() => eliminar(e.id)} className="w-8 h-8 rounded-full flex items-center justify-center text-[#9b968d] hover:text-[#b24f58]">
-                    <TrashIcon />
-                  </button>
+                  <button onClick={() => abrirEditar(e)} className="w-8 h-8 rounded-full flex items-center justify-center text-[#9b968d] hover:text-[#5a4bc3]">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+</button>
+<button onClick={() => eliminar(e.id)} className="w-8 h-8 rounded-full flex items-center justify-center text-[#9b968d] hover:text-[#b24f58]">
+  <TrashIcon />
+</button>
                 </div>
               </div>
             ))}
