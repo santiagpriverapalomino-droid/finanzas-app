@@ -241,6 +241,45 @@ await enviarNotifSiCorresponde(
   const tip1 = NO_DATA_TIPS[tipIndex]
   const tip2 = NO_DATA_TIPS[(tipIndex+1) % NO_DATA_TIPS.length]
 
+  const consejosPersonalizados = useMemo(() => {
+    if (expenses.length === 0) return null
+    const consejos: string[] = []
+    const income = profile?.monthly_income || 0
+    const ratio = income > 0 ? totalGastado / income : 0
+
+    // Categoría con más gasto
+    const catMap: Record<string,number> = {}
+    expenses.forEach(e => { catMap[e.category] = (catMap[e.category]||0) + Number(e.amount) })
+    const topCat = Object.entries(catMap).sort((a,b) => b[1]-a[1])[0]
+
+    if (ratio > 0.9) {
+      consejos.push(`⚠️ Gastaste el ${Math.round(ratio*100)}% de tu ingreso este mes. Estás muy cerca del límite — revisa tus gastos no esenciales.`)
+    } else if (ratio > 0.7) {
+      consejos.push(`📊 Llevas el ${Math.round(ratio*100)}% de tu presupuesto gastado. Tienes S/${Math.round(income - totalGastado)} disponibles — úsalos con cuidado.`)
+    } else if (ratio < 0.3 && totalGastado > 0) {
+      consejos.push(`🎉 ¡Vas muy bien! Solo gastaste el ${Math.round(ratio*100)}% de tu ingreso. Considera mover el excedente a una meta de ahorro.`)
+    }
+
+    if (topCat && topCat[1] > 0) {
+      const pctCat = income > 0 ? Math.round(topCat[1]/income*100) : 0
+      if (topCat[0] === 'Entretenimiento' && pctCat > 20) {
+        consejos.push(`🎮 Entretenimiento es tu mayor gasto (${pctCat}% de tu ingreso). La regla 50/30/20 sugiere máximo 30% en gustos en total.`)
+      } else if (topCat[0] === 'Alimentación' && pctCat > 30) {
+        consejos.push(`🍽️ Alimentación representa el ${pctCat}% de tus gastos. Cocinar en casa 3 días más por semana puede ahorrarte S/150 al mes.`)
+      } else if (topCat[0] === 'Compras' && pctCat > 25) {
+        consejos.push(`🛍️ Compras es tu categoría más alta (${pctCat}%). Antes de comprar algo mayor a S/50, espera 48 horas para evaluar si realmente lo necesitas.`)
+      } else {
+        consejos.push(`📌 Tu mayor gasto este mes es ${topCat[0]} con S/${Math.round(topCat[1]).toLocaleString('es-PE')}. ¿Es lo que esperabas?`)
+      }
+    }
+
+    if (daysUntilSalary <= 7 && daysUntilSalary > 0) {
+      consejos.push(`⏰ Faltan ${daysUntilSalary} días para tu cobro. Con S/${Math.round(income - totalGastado)} disponibles, planifica bien estos últimos días.`)
+    }
+
+    return consejos.length > 0 ? consejos : null
+  }, [expenses, totalGastado, profile, daysUntilSalary])
+
   const spendingRatio = profile?.monthly_income ? totalGastado/profile.monthly_income : 0
 
   const orderedCategories = useMemo(() => {
@@ -458,9 +497,19 @@ await enviarNotifSiCorresponde(
             <h2 className="text-[13px] font-bold uppercase tracking-wide text-[#47433d]">Resumen + Mejora</h2>
           </div>
           <div className="rounded-[18px] bg-[#f4efe3] p-4">
-            <p className="text-[14px] font-semibold text-[#624b20]">Consejo de la IA</p>
-            <p className="mt-1 text-[13px] leading-5 text-[#5b564d]">{tip1}</p>
-          </div>
+  <p className="text-[14px] font-semibold text-[#624b20]">
+    {consejosPersonalizados ? '🤖 Análisis de tus gastos' : 'Consejo de la IA'}
+  </p>
+  {consejosPersonalizados ? (
+    <div className="space-y-2 mt-1">
+      {consejosPersonalizados.map((c, i) => (
+        <p key={i} className="text-[13px] leading-5 text-[#5b564d]">{c}</p>
+      ))}
+    </div>
+  ) : (
+    <p className="mt-1 text-[13px] leading-5 text-[#5b564d]">{tip1}</p>
+  )}
+</div>
         </div>
 
         {/* Gastos por categoría */}
