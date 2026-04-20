@@ -23,6 +23,10 @@ export default function Metas() {
   const [guardando, setGuardando] = useState(false)
   const [form, setForm] = useState({ name: '', target_amount: '', deadline: '' })
   const [simulador, setSimulador] = useState<Record<string, number>>({})
+  const [abonoCustom, setAbonoCustom] = useState<Record<string, string>>({})
+  const [editando, setEditando] = useState<Goal | null>(null)
+  const [editForm, setEditForm] = useState({ name: '', target_amount: '', deadline: '' })
+  const [simCustom, setSimCustom] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const init = async () => {
@@ -54,12 +58,32 @@ export default function Metas() {
     setGuardando(false)
   }
 
+  const guardarEdicion = async () => {
+    if (!editando || !editForm.name || !editForm.target_amount) return
+    setGuardando(true)
+    await supabase.from('goals').update({
+      name: editForm.name,
+      target_amount: parseFloat(editForm.target_amount),
+      deadline: editForm.deadline || null,
+    }).eq('id', editando.id)
+    setGoals(goals.map(g => g.id === editando.id ? {
+      ...g,
+      name: editForm.name,
+      target_amount: parseFloat(editForm.target_amount),
+      deadline: editForm.deadline,
+    } : g))
+    setEditando(null)
+    setGuardando(false)
+  }
+
   const abonarMeta = async (id: string, monto: number) => {
+    if (monto <= 0) return
     const goal = goals.find(g => g.id === id)
     if (!goal) return
     const newAmount = Math.min(goal.target_amount, goal.saved_amount + monto)
     await supabase.from('goals').update({ saved_amount: newAmount }).eq('id', id)
     setGoals(goals.map(g => g.id === id ? { ...g, saved_amount: newAmount } : g))
+    setAbonoCustom({ ...abonoCustom, [id]: '' })
   }
 
   const eliminarMeta = async (id: string) => {
@@ -73,7 +97,6 @@ export default function Metas() {
 
   return (
     <div className="min-h-screen bg-[#f5f3ee]">
-      {/* Header */}
       <div className="px-4 pt-5 pb-2 flex items-start justify-between">
         <div>
           <p className="text-[11px] font-semibold tracking-widest text-[#8c887d] uppercase">{user?.user_metadata?.full_name?.split(' ')[0]}</p>
@@ -88,13 +111,11 @@ export default function Metas() {
 
       <div className="px-4 pb-24 space-y-4 mt-2">
 
-        {/* Resumen */}
         <div className="rounded-[18px] bg-[#f3f0e8] p-4">
           <p className="text-[13px] text-[#4d4a43]">Mis metas</p>
           <p className="text-[18px] font-semibold text-[#1f1f1f] mt-1">{goals.length} activas · S/{goals.reduce((s, g) => s + g.saved_amount, 0).toLocaleString()} ahorrados en total</p>
         </div>
 
-        {/* Lista de metas */}
         {goals.length === 0 ? (
           <div className="rounded-[22px] border border-dashed border-[#c8bbf5] bg-[#faf9ff] p-8 text-center">
             <p className="text-[#8c887d] text-[14px]">Aún no has creado metas.</p>
@@ -104,6 +125,9 @@ export default function Metas() {
           goals.map(goal => {
             const pct = getPct(goal.saved_amount, goal.target_amount)
             const sim = simulador[goal.id] || 50
+            const simC = simCustom[goal.id] || ''
+            const simActivo = simC ? parseFloat(simC) : sim
+            const mesesRestantes = simActivo > 0 ? Math.ceil((goal.target_amount - goal.saved_amount) / simActivo) : 0
             return (
               <div key={goal.id} className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
                 <div className="flex items-start justify-between mb-2">
@@ -113,6 +137,10 @@ export default function Metas() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[13px] font-bold text-[#22c55e]">{pct}%</span>
+                    <button onClick={() => { setEditando(goal); setEditForm({ name: goal.name, target_amount: String(goal.target_amount), deadline: goal.deadline || '' }) }}
+                      className="text-[#9b968d] hover:text-[#5a4bc3]">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
                     <button onClick={() => eliminarMeta(goal.id)} className="text-[#b24f58] opacity-60 hover:opacity-100">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
                     </button>
@@ -128,14 +156,28 @@ export default function Metas() {
                   <span className="text-[#5a4bc3] font-semibold">Meta real</span>
                 </div>
 
-                {/* Botones abonar */}
-                <div className="flex gap-2 mb-4">
-                  {[50, 100].map(monto => (
-                    <button key={monto} onClick={() => abonarMeta(goal.id, monto)}
-                      className="rounded-full border border-[#e2decb] px-4 py-1.5 text-[13px] font-medium text-[#47433d] hover:bg-[#ede9ff] hover:border-[#5a4bc3] hover:text-[#5a4bc3] transition-all">
-                      +S/{monto}
+                {/* Abonar */}
+                <div className="mb-4">
+                  <p className="text-[11px] font-bold uppercase text-[#726d62] mb-2">Abonar</p>
+                  <div className="flex gap-2 mb-2">
+                    {[50, 100, 200].map(monto => (
+                      <button key={monto} onClick={() => abonarMeta(goal.id, monto)}
+                        className="rounded-full border border-[#e2decb] px-3 py-1.5 text-[13px] font-medium text-[#47433d] hover:bg-[#ede9ff] hover:border-[#5a4bc3] hover:text-[#5a4bc3] transition-all">
+                        +S/{monto}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input type="number" placeholder="Monto personalizado"
+                      value={abonoCustom[goal.id] || ''}
+                      onChange={e => setAbonoCustom({ ...abonoCustom, [goal.id]: e.target.value })}
+                      className="flex-1 rounded-[12px] border border-[#e2decb] bg-[#f7f4ed] px-3 py-2 text-[13px] outline-none focus:border-[#5a4bc3]"/>
+                    <button onClick={() => abonarMeta(goal.id, parseFloat(abonoCustom[goal.id] || '0'))}
+                      disabled={!abonoCustom[goal.id] || parseFloat(abonoCustom[goal.id]) <= 0}
+                      className="rounded-[12px] bg-[#5a4bc3] px-4 py-2 text-[13px] font-bold text-white disabled:opacity-40">
+                      Abonar
                     </button>
-                  ))}
+                  </div>
                 </div>
 
                 {/* Simulador IA */}
@@ -144,27 +186,44 @@ export default function Metas() {
                     <span>✨</span>
                     <p className="text-[13px] font-bold text-[#92400e]">Simulador IA</p>
                   </div>
-                  <p className="text-[13px] text-[#78350f] mb-3">
-                    {goal.target_amount - goal.saved_amount <= 0
-                      ? '🎉 ¡Meta completada!'
-                      : `Si ahorras S/${sim} más al mes, llegarías a tu meta en ${Math.ceil((goal.target_amount - goal.saved_amount) / sim)} meses.`
-                    }
-                  </p>
-                  <div className="flex gap-2">
-                    {[50, 150, 300].map(monto => (
-                      <button key={monto} onClick={() => setSimulador({ ...simulador, [goal.id]: monto })}
-                        className={`flex-1 rounded-full py-1.5 text-[12px] font-bold transition-all ${sim === monto ? 'bg-[#5a4bc3] text-white' : 'border border-[#e2decb] text-[#47433d]'}`}>
-                        +S/{monto}/mes
-                      </button>
-                    ))}
-                  </div>
+                  {goal.target_amount - goal.saved_amount <= 0 ? (
+                    <p className="text-[13px] text-[#78350f]">🎉 ¡Meta completada!</p>
+                  ) : (
+                    <>
+                      <p className="text-[13px] text-[#78350f] mb-2">
+                        Faltan <span className="font-bold">S/{(goal.target_amount - goal.saved_amount).toLocaleString()}</span>
+                        {simActivo > 0 && <> — ahorrando <span className="font-bold">S/{simActivo}/mes</span> llegarías en <span className="font-bold">{mesesRestantes} {mesesRestantes === 1 ? 'mes' : 'meses'}</span></>}
+                        {goal.deadline && simActivo > 0 && (() => {
+                          const hoy = new Date()
+                          const limite = new Date(goal.deadline)
+                          const mesesHastaFecha = Math.ceil((limite.getTime() - hoy.getTime()) / (1000*60*60*24*30))
+                          const necesario = Math.ceil((goal.target_amount - goal.saved_amount) / mesesHastaFecha)
+                          return <span className="block mt-1 text-[#92400e]">Para llegar antes del {new Date(goal.deadline).toLocaleDateString('es-PE',{day:'numeric',month:'long'})}, necesitas ahorrar <span className="font-bold">S/{necesario}/mes</span>.</span>
+                        })()}
+                      </p>
+                      <div className="flex gap-2 mb-2">
+                        {[50, 150, 300].map(monto => (
+                          <button key={monto} onClick={() => { setSimulador({ ...simulador, [goal.id]: monto }); setSimCustom({ ...simCustom, [goal.id]: '' }) }}
+                            className={`flex-1 rounded-full py-1.5 text-[12px] font-bold transition-all ${sim === monto && !simC ? 'bg-[#5a4bc3] text-white' : 'border border-[#e2decb] text-[#47433d]'}`}>
+                            S/{monto}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <input type="number" placeholder="Tu monto/mes"
+                          value={simC}
+                          onChange={e => setSimCustom({ ...simCustom, [goal.id]: e.target.value })}
+                          className="flex-1 rounded-[12px] border border-[#f0e6c8] bg-white px-3 py-1.5 text-[13px] outline-none focus:border-[#5a4bc3]"/>
+                        <span className="text-[12px] text-[#92400e] flex items-center">por mes</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )
           })
         )}
 
-        {/* Formulario nueva meta */}
         {showForm && (
           <div className="rounded-[22px] border border-[#c8bbf5] bg-[#faf9ff] p-4">
             <p className="text-[14px] font-bold text-[#3d2fa0] mb-3">Nueva meta</p>
@@ -190,7 +249,6 @@ export default function Metas() {
           </div>
         )}
 
-        {/* Botón nueva meta */}
         {!showForm && (
           <button data-tour="agregar-meta" onClick={() => setShowForm(true)}
             className="w-full rounded-[16px] bg-[#5a4bc3] py-4 text-[15px] font-bold text-white">
@@ -200,10 +258,40 @@ export default function Metas() {
 
       </div>
 
-      {/* Navbar */}
+      {/* Modal editar meta */}
+      {editando && (
+        <div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm" onClick={() => setEditando(null)}>
+          <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-[#fcfbf8] p-5 pb-8" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#ddd7cc]"/>
+            <h2 className="text-[18px] font-semibold text-[#24211d] mb-4">Editar meta</h2>
+            <div className="space-y-3">
+              <input type="text" placeholder="Nombre de la meta" value={editForm.name}
+                onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
+                className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+              <input type="number" placeholder="Monto objetivo en S/" value={editForm.target_amount}
+                onChange={e => setEditForm(p => ({ ...p, target_amount: e.target.value }))}
+                className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+              <input type="date" value={editForm.deadline}
+                onChange={e => setEditForm(p => ({ ...p, deadline: e.target.value }))}
+                className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => setEditando(null)}
+                  className="rounded-[18px] border border-[#e2decb] py-3 text-[14px] text-[#8c887d]">
+                  Cancelar
+                </button>
+                <button onClick={guardarEdicion} disabled={guardando || !editForm.name || !editForm.target_amount}
+                  className="rounded-[18px] bg-[#5a4bc3] py-3 text-[14px] font-bold text-white disabled:opacity-40">
+                  {guardando ? 'Guardando...' : 'Guardar cambios'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#ece8df]">
         <div className="max-w-md mx-auto flex">
-         {[
+          {[
             {href:'/dashboard',label:'Inicio',active:false,icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>},
             {href:'/gastos',label:'Gastos',active:false,icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>},
             {href:'/metas',label:'Metas',active:true,icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>},
@@ -217,10 +305,10 @@ export default function Metas() {
         </div>
       </div>
 
-      {/* Burbuja IA */}
       <Link href="/ia" className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-[#5a4bc3] flex items-center justify-center shadow-lg">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       </Link>
+
       <TourGuide
         tourKey="metas"
         steps={[
@@ -241,4 +329,3 @@ export default function Metas() {
     </div>
   )
 }
-
