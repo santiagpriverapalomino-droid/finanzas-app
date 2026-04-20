@@ -31,6 +31,8 @@ export default function Inversiones() {
   const [isAdding, setIsAdding] = useState(false)
   const [editandoDist, setEditandoDist] = useState(false)
   const [guardando, setGuardando] = useState(false)
+  const [editando, setEditando] = useState<Investment | null>(null)
+const [editForm, setEditForm] = useState({ type: 'fondo_mutuo', name: '', amount: '', yield_percent: '', start_date: '', end_date: '', notes: '' })
   const [form, setForm] = useState({
     type: 'fondo_mutuo', name: '', amount: '', yield_percent: '', start_date: todayStr(), end_date: '', notes: ''
   })
@@ -105,20 +107,38 @@ export default function Inversiones() {
   const tipoInfo = TIPOS.find(t => t.id === form.type)
 
   const agregar = async () => {
-    if (!form.name || !form.amount) return
-    setGuardando(true)
-    const { data, error } = await supabase.from('investments').insert({
-      user_id: user.id, type: form.type, name: form.name,
-      amount: parseFloat(form.amount), yield_percent: parseFloat(form.yield_percent) || 0,
-      start_date: form.start_date, end_date: form.end_date || null, notes: form.notes || null
-    }).select()
-    if (!error && data) {
-      setInvestments(prev => [...prev, data[0]])
-      setForm({ type:'fondo_mutuo', name:'', amount:'', yield_percent:'', start_date:todayStr(), end_date:'', notes:'' })
-      setIsAdding(false)
-    }
-    setGuardando(false)
+  if (!form.name || !form.amount) return
+  setGuardando(true)
+  const { data, error } = await supabase.from('investments').insert({
+    user_id: user.id, type: form.type, name: form.name,
+    amount: parseFloat(form.amount), yield_percent: parseFloat(form.yield_percent) || 0,
+    start_date: form.start_date, end_date: form.end_date || null, notes: form.notes || null
+  }).select()
+  if (!error && data) {
+    setInvestments(prev => [...prev, data[0]])
+    setForm({ type:'fondo_mutuo', name:'', amount:'', yield_percent:'', start_date:todayStr(), end_date:'', notes:'' })
+    setIsAdding(false)
   }
+  setGuardando(false)
+}
+
+const guardarEdicion = async () => {
+  if (!editando || !editForm.name || !editForm.amount) return
+  setGuardando(true)
+  await supabase.from('investments').update({
+    type: editForm.type,
+    name: editForm.name,
+    amount: parseFloat(editForm.amount),
+    yield_percent: parseFloat(editForm.yield_percent) || 0,
+    start_date: editForm.start_date,
+    end_date: editForm.end_date || null,
+    notes: editForm.notes || null,
+  }).eq('id', editando.id)
+  const { data } = await supabase.from('investments').select('*').eq('user_id', user.id).order('created_at')
+  setInvestments(data || [])
+  setEditando(null)
+  setGuardando(false)
+}
 
   const eliminar = async (id: string) => {
     await supabase.from('investments').delete().eq('id', id)
@@ -290,9 +310,13 @@ export default function Inversiones() {
                   </div>
                   <p className="text-[12px] text-[#8c887d]">{tipo?.label}</p>
                 </div>
-                <button onClick={() => eliminar(inv.id)} className="w-8 h-8 rounded-full flex items-center justify-center text-[#9b968d] hover:text-[#b24f58]">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-                </button>
+                <button onClick={() => { setEditando(inv); setEditForm({ type: inv.type, name: inv.name, amount: String(inv.amount), yield_percent: String(inv.yield_percent), start_date: inv.start_date, end_date: inv.end_date || '', notes: inv.notes || '' }) }}
+  className="w-8 h-8 rounded-full flex items-center justify-center text-[#9b968d] hover:text-[#5a4bc3]">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+</button>
+<button onClick={() => eliminar(inv.id)} className="w-8 h-8 rounded-full flex items-center justify-center text-[#9b968d] hover:text-[#b24f58]">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+</button>
               </div>
               <div className="flex justify-between mb-2">
                 <div>
@@ -378,7 +402,64 @@ export default function Inversiones() {
           </div>
         </div>
       )}
-
+{editando && (
+  <div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm" onClick={() => setEditando(null)}>
+    <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-[#fcfbf8] p-5 pb-8 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#ddd7cc]"/>
+      <h2 className="text-[18px] font-semibold text-[#24211d] mb-4">Editar inversión</h2>
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {TIPOS.map(t => (
+            <button key={t.id} onClick={() => setEditForm(p=>({...p,type:t.id}))}
+              className={`rounded-full px-3 py-1.5 text-[12px] font-bold transition-all ${editForm.type===t.id?'text-white':'border border-[#e5dfd5] text-[#47433d]'}`}
+              style={editForm.type===t.id?{background:t.color}:{}}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <input type="text" placeholder="Nombre / Entidad" value={editForm.name}
+          onChange={e=>setEditForm(p=>({...p,name:e.target.value}))}
+          className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+        <div className="grid grid-cols-2 gap-3">
+          <input type="number" placeholder="Monto (S/)" value={editForm.amount}
+            onChange={e=>setEditForm(p=>({...p,amount:e.target.value}))}
+            className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+          <input type="number" placeholder="Rendimiento % anual" value={editForm.yield_percent}
+            onChange={e=>setEditForm(p=>({...p,yield_percent:e.target.value}))}
+            className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <p className="text-[12px] text-[#726d62] mb-1">Fecha inicio</p>
+            <input type="date" value={editForm.start_date}
+              onChange={e=>setEditForm(p=>({...p,start_date:e.target.value}))}
+              className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+          </div>
+          <div>
+            <p className="text-[12px] text-[#726d62] mb-1">Vencimiento (opcional)</p>
+            <input type="date" value={editForm.end_date}
+              onChange={e=>setEditForm(p=>({...p,end_date:e.target.value}))}
+              className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+          </div>
+        </div>
+        <textarea placeholder="Notas (opcional)" value={editForm.notes}
+          onChange={e=>setEditForm(p=>({...p,notes:e.target.value}))}
+          rows={2}
+          className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff] resize-none"/>
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => setEditando(null)}
+            className="rounded-[18px] border border-[#e2decb] py-3 text-[14px] text-[#8c887d]">
+            Cancelar
+          </button>
+          <button onClick={guardarEdicion} disabled={guardando||!editForm.name||!editForm.amount}
+            className="rounded-[18px] bg-[#5a4bc3] py-3 text-[14px] font-bold text-white disabled:opacity-40">
+            {guardando?'Guardando...':'Guardar cambios'}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
       {/* Navbar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#ece8df]">
         <div className="max-w-md mx-auto flex">
