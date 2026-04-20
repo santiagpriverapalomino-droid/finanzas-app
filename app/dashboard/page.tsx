@@ -162,6 +162,62 @@ if (allExp && allExp.length > 0) {
   else if (streak >= 7) setLogro('Una semana seguida')
   else if (streak >= 3) setLogro('Constancia inicial')
 }
+// Enviar notificaciones automáticas
+const enviarNotifSiCorresponde = async (userId: string, income: number, gastos: number, salaryDay: number, goals: any[]) => {
+  const ratio = income > 0 ? gastos / income : 0
+  const hoy = new Date().getDate()
+
+  if (ratio >= 0.8) {
+    await fetch('/api/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId,
+        title: '⚠️ Presupuesto casi agotado',
+        body: `Llevás gastado el ${Math.round(ratio*100)}% de tu presupuesto. Quedan S/${Math.round(income - gastos)}.`,
+        url: '/gastos'
+      })
+    }).catch(() => {})
+  }
+
+  if (hoy === salaryDay) {
+    await fetch('/api/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId,
+        title: '💰 Hoy es día de cobro',
+        body: 'Recuerda apartar tu ahorro antes de gastar. ¡Primero págate a ti mismo!',
+        url: '/dashboard'
+      })
+    }).catch(() => {})
+  }
+
+  const metaCercana = goals.find((g: any) => {
+    const pct = g.target_amount > 0 ? g.saved_amount / g.target_amount : 0
+    return pct >= 0.8 && pct < 1
+  })
+  if (metaCercana) {
+    await fetch('/api/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId,
+        title: '🎯 Meta casi lista',
+        body: `Tu meta "${metaCercana.name}" está al ${Math.round(metaCercana.saved_amount/metaCercana.target_amount*100)}%. ¡Ya casi!`,
+        url: '/metas'
+      })
+    }).catch(() => {})
+  }
+}
+
+await enviarNotifSiCorresponde(
+  user.id,
+  prof?.monthly_income || 0,
+  (exp || []).reduce((s: number, e: any) => s + Number(e.amount), 0),
+  prof?.salary_day || 0,
+  g || []
+)
       setLoading(false)
     }
     init()
