@@ -180,61 +180,128 @@ const guardarEdicion = async () => {
           </div>
         </div>
 
-        {/* Distribución recomendada editable */}
-        <div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d]">Distribución recomendada</p>
-            <button onClick={() => setEditandoDist(!editandoDist)}
-              className="text-[12px] font-bold text-[#5a4bc3] bg-[#ede9ff] px-3 py-1 rounded-full">
-              {editandoDist ? 'Listo ✓' : 'Editar'}
-            </button>
-          </div>
-          {editandoDist && (
-            <div className={`mb-3 text-[12px] font-bold text-center ${totalDist === 100 ? 'text-[#22c55e]' : 'text-[#b24f58]'}`}>
-              Total: {totalDist}% {totalDist === 100 ? '✅' : '⚠️ debe sumar 100%'}
-            </div>
-          )}
-          {dist.map((d, i) => (
-            <div key={d.label} className="mb-3">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{background: d.color}}/>
-                  <span className="text-[13px] text-[#403c37]">{d.label}</span>
-                </div>
-                {editandoDist ? (
-                  <input type="number" min="0" max="100" value={d.pct}
-                    onChange={e => {
-                      const newDist = [...dist]
-                      newDist[i] = {...newDist[i], pct: parseInt(e.target.value) || 0}
-                      setDist(newDist)
-                    }}
-                    className="w-16 rounded-[10px] border border-[#e5dfd5] bg-[#f7f4ed] px-2 py-1 text-[13px] font-bold text-center outline-none focus:border-[#5a4bc3]"/>
-                ) : (
-                  <span className="text-[13px] font-bold text-[#1f1f1f]">{d.pct}%</span>
-                )}
-              </div>
-              {editandoDist && (
-                <input type="range" min="0" max="100" value={d.pct}
-                  onChange={e => {
-                    const newDist = [...dist]
-                    newDist[i] = {...newDist[i], pct: parseInt(e.target.value)}
-                    setDist(newDist)
-                  }}
-                  className="w-full accent-[#5a4bc3]"/>
-              )}
-              {!editandoDist && (
-                <div className="h-2 rounded-full bg-[#ece7dd]">
-                  <div className="h-2 rounded-full transition-all" style={{width:`${d.pct}%`, background: d.color}}/>
-                </div>
-              )}
-            </div>
-          ))}
-          {!editandoDist && (
-            <p className="text-[12px] text-[#8c887d] mt-2">
-              💡 Basado en perfil conservador-moderado para jóvenes peruanos. Ajusta según tu tolerancia al riesgo.
-            </p>
-          )}
+        {/* Simulador de portafolio */}
+<div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
+  <div className="flex items-center justify-between mb-1">
+    <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d]">Simulador de portafolio</p>
+    <button onClick={() => setEditandoDist(!editandoDist)}
+      className="text-[12px] font-bold text-[#5a4bc3] bg-[#ede9ff] px-3 py-1 rounded-full">
+      {editandoDist ? 'Listo ✓' : 'Editar'}
+    </button>
+  </div>
+  <p className="text-[12px] text-[#8c887d] mb-3">Ajusta tu distribución y ve el impacto en tiempo real</p>
+
+  {editandoDist && (
+    <div className={`mb-3 text-[12px] font-bold text-center ${totalDist === 100 ? 'text-[#22c55e]' : 'text-[#b24f58]'}`}>
+      Total: {totalDist}% {totalDist === 100 ? '✅' : '⚠️ debe sumar 100%'}
+    </div>
+  )}
+
+  {dist.map((d, i) => (
+    <div key={d.label} className="mb-3">
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full" style={{background: d.color}}/>
+          <span className="text-[13px] text-[#403c37]">{d.label}</span>
         </div>
+        {editandoDist ? (
+          <input type="number" min="0" max="100" value={d.pct}
+            onChange={e => {
+              const newDist = [...dist]
+              newDist[i] = {...newDist[i], pct: parseInt(e.target.value) || 0}
+              setDist(newDist)
+            }}
+            className="w-16 rounded-[10px] border border-[#e5dfd5] bg-[#f7f4ed] px-2 py-1 text-[13px] font-bold text-center outline-none focus:border-[#5a4bc3]"/>
+        ) : (
+          <span className="text-[13px] font-bold text-[#1f1f1f]">{d.pct}%</span>
+        )}
+      </div>
+      {editandoDist ? (
+        <input type="range" min="0" max="100" value={d.pct}
+          onChange={e => {
+            const newDist = [...dist]
+            newDist[i] = {...newDist[i], pct: parseInt(e.target.value)}
+            setDist(newDist)
+          }}
+          className="w-full accent-[#5a4bc3]"/>
+      ) : (
+        <div className="h-2 rounded-full bg-[#ece7dd]">
+          <div className="h-2 rounded-full transition-all" style={{width:`${d.pct}%`, background: d.color}}/>
+        </div>
+      )}
+    </div>
+  ))}
+
+  {/* Métricas en tiempo real */}
+  {(() => {
+    const rendimientos: Record<string, number> = {
+      'Fondos mutuos': 7, 'Depósito a plazo': 4.5, 'Acciones / ETFs': 10, 'Cripto (máx.)': 20
+    }
+    const riesgos: Record<string, number> = {
+      'Fondos mutuos': 2, 'Depósito a plazo': 1, 'Acciones / ETFs': 3.5, 'Cripto (máx.)': 5
+    }
+    const rendPonderado = dist.reduce((s, d) => s + (d.pct / 100) * (rendimientos[d.label] || 5), 0)
+    const riesgoPonderado = dist.reduce((s, d) => s + (d.pct / 100) * (riesgos[d.label] || 2), 0)
+    const base = totalInvertido || 1000
+    const y1 = base * Math.pow(1 + rendPonderado / 100, 1)
+    const y5 = base * Math.pow(1 + rendPonderado / 100, 5)
+    const y10 = base * Math.pow(1 + rendPonderado / 100, 10)
+
+    const nivelRiesgo = riesgoPonderado < 2 ? { label: 'Conservador', color: '#22c55e' }
+      : riesgoPonderado < 3.5 ? { label: 'Moderado', color: '#f1a22e' }
+      : { label: 'Agresivo', color: '#b24f58' }
+
+    return (
+      <div className="mt-4 space-y-3">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-[16px] bg-white border border-[#ebe6db] p-3 text-center">
+            <p className="text-[10px] text-[#726d62] uppercase font-bold mb-1">Rendimiento est.</p>
+            <p className="text-[20px] font-bold text-[#22c55e]">{rendPonderado.toFixed(1)}%</p>
+            <p className="text-[10px] text-[#8c887d]">anual promedio</p>
+          </div>
+          <div className="rounded-[16px] bg-white border border-[#ebe6db] p-3 text-center">
+            <p className="text-[10px] text-[#726d62] uppercase font-bold mb-1">Nivel de riesgo</p>
+            <p className="text-[16px] font-bold mt-1" style={{color: nivelRiesgo.color}}>{nivelRiesgo.label}</p>
+            <div className="flex justify-center gap-1 mt-1">
+              {[1,2,3,4,5].map(n => (
+                <div key={n} className="w-3 h-1.5 rounded-full" style={{background: n <= Math.round(riesgoPonderado) ? nivelRiesgo.color : '#ece7dd'}}/>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-[16px] bg-white border border-[#ebe6db] p-3">
+          <p className="text-[11px] font-bold uppercase text-[#726d62] mb-2">Proyección con tu distribución actual</p>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            {[{label:'1 año', val:y1},{label:'5 años', val:y5},{label:'10 años', val:y10}].map(p => (
+              <div key={p.label}>
+                <p className="text-[10px] text-[#8c887d]">{p.label}</p>
+                <p className="text-[14px] font-bold text-[#5a4bc3]">S/{Math.round(p.val).toLocaleString('es-PE')}</p>
+                <p className="text-[10px] text-[#22c55e] font-bold">+S/{Math.round(p.val - base).toLocaleString('es-PE')}</p>
+              </div>
+            ))}
+          </div>
+          {/* Barra visual de crecimiento */}
+          <div className="mt-3 relative h-6">
+            {[{val: y1, label:'1a'}, {val: y5, label:'5a'}, {val: y10, label:'10a'}].map((p, i) => (
+              <div key={i} className="absolute bottom-0 flex flex-col items-center" style={{left: `${i * 40}%`, width: '30%'}}>
+                <div className="w-full rounded-t-[4px]" style={{
+                  height: `${Math.round((p.val - base) / (y10 - base) * 20) + 4}px`,
+                  background: '#5a4bc3',
+                  opacity: 0.3 + i * 0.3
+                }}/>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-[11px] text-[#8c887d] text-center">
+          💡 Basado en rendimientos históricos. No garantiza resultados futuros.
+        </p>
+      </div>
+    )
+  })()}
+</div>
 
         {/* Proyección */}
 <div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4" data-tour="proyeccion">          <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d] mb-1">📈 Proyección de tu inversión</p>
