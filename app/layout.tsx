@@ -15,9 +15,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es" style={{colorScheme: 'light'}}>
+    <html lang="es">
   <head>
-    <script dangerouslySetInnerHTML={{__html: `document.documentElement.classList.remove('dark');`}}/>
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#4C1D95" />
     <meta name="apple-mobile-web-app-capable" content="yes" />

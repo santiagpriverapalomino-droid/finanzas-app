@@ -12,7 +12,6 @@ export default function Configuracion() {
   const [loading, setLoading] = useState(true)
   const [seccion, setSeccion] = useState<'menu' | 'perfil' | 'historial' | 'plan'>('menu')
   const [guardando, setGuardando] = useState(false)
-  const [modoOscuro, setModoOscuro] = useState(false)
   const [historial, setHistorial] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
   const [form, setForm] = useState({ full_name: '', monthly_income: '', salary_day: '' })
@@ -30,17 +29,7 @@ export default function Configuracion() {
         monthly_income: prof?.monthly_income || '',
         salary_day: prof?.salary_day || '',
       })
-      const savedDark = localStorage.getItem('modoOscuro') === 'true'
-setModoOscuro(savedDark)
-if (savedDark) {
-  document.documentElement.setAttribute('data-theme', 'dark')
-} else {
-  document.documentElement.removeAttribute('data-theme')
-}
-setModoOscuro(savedDark)
-if (!savedDark) {
-  document.documentElement.classList.remove('dark')
-}
+    
       const { data: exp } = await supabase.from('expenses').select('amount, date, description, category').eq('user_id', user.id)
       setExpenses(exp || [])
       if (exp) {
@@ -84,17 +73,6 @@ if (!savedDark) {
     await supabase.auth.signOut()
     router.push('/')
   }
-
-  const toggleOscuro = () => {
-  const nuevo = !modoOscuro
-  setModoOscuro(nuevo)
-  localStorage.setItem('modoOscuro', String(nuevo))
-  if (nuevo) {
-    document.documentElement.setAttribute('data-theme', 'dark')
-  } else {
-    document.documentElement.removeAttribute('data-theme')
-  }
-}
 
   const exportarPDF = async () => {
     const { default: jsPDF } = await import('jspdf')
@@ -173,16 +151,7 @@ if (!savedDark) {
                 <svg className="ml-auto" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8c887d" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
               </button>
             ))}
-            <div className="flex items-center justify-between rounded-[22px] bg-white dark:bg-[#1e1e32] border border-[#ebe6db] dark:border-[#2e2e50] p-4">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-[#5a4bc3] flex items-center justify-center text-lg">🌙</div>
-                <span className="text-[15px] font-medium text-[#1f1f1f] dark:text-white">Modo oscuro</span>
-              </div>
-              <button onClick={toggleOscuro}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${modoOscuro?'bg-[#5a4bc3]':'bg-[#ddd7cc]'}`}>
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${modoOscuro?'translate-x-6':'translate-x-1'}`}/>
-              </button>
-            </div>
+            
             <div className="flex items-center justify-between rounded-[22px] bg-white dark:bg-[#1e1e32] border border-[#ebe6db] dark:border-[#2e2e50] p-4">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-full bg-[#5a4bc3] flex items-center justify-center text-lg">🔔</div>
