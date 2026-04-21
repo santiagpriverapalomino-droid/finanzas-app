@@ -32,6 +32,12 @@ export default function Configuracion() {
       })
       const savedDark = localStorage.getItem('modoOscuro') === 'true'
 setModoOscuro(savedDark)
+if (savedDark) {
+  document.documentElement.classList.add('dark')
+} else {
+  document.documentElement.classList.remove('dark')
+}
+setModoOscuro(savedDark)
 if (!savedDark) {
   document.documentElement.classList.remove('dark')
 }
