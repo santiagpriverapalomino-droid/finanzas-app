@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es">
+    <html lang="es" className="light">
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#4C1D95" />
