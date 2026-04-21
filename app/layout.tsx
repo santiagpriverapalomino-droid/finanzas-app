@@ -17,6 +17,10 @@ export default function RootLayout({
   return (
     <html lang="es" className="light">
       <head>
+  <script dangerouslySetInnerHTML={{__html: `
+    document.documentElement.classList.remove('dark');
+  `}}/>
+  <link rel="manifest" href="/manifest.json" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#4C1D95" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
