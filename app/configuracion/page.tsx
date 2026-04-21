@@ -30,8 +30,11 @@ export default function Configuracion() {
         monthly_income: prof?.monthly_income || '',
         salary_day: prof?.salary_day || '',
       })
-      const isDark = document.documentElement.classList.contains('dark')
-      setModoOscuro(isDark)
+      const savedDark = localStorage.getItem('modoOscuro') === 'true'
+setModoOscuro(savedDark)
+if (!savedDark) {
+  document.documentElement.classList.remove('dark')
+}
       const { data: exp } = await supabase.from('expenses').select('amount, date, description, category').eq('user_id', user.id)
       setExpenses(exp || [])
       if (exp) {
@@ -77,14 +80,15 @@ export default function Configuracion() {
   }
 
   const toggleOscuro = () => {
-    const nuevo = !modoOscuro
-    setModoOscuro(nuevo)
-    if (nuevo) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
+  const nuevo = !modoOscuro
+  setModoOscuro(nuevo)
+  localStorage.setItem('modoOscuro', String(nuevo))
+  if (nuevo) {
+    document.documentElement.classList.add('dark')
+  } else {
+    document.documentElement.classList.remove('dark')
   }
+}
 
   const exportarPDF = async () => {
     const { default: jsPDF } = await import('jspdf')
