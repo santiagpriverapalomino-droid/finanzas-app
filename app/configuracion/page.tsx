@@ -29,7 +29,6 @@ export default function Configuracion() {
         monthly_income: prof?.monthly_income || '',
         salary_day: prof?.salary_day || '',
       })
-    
       const { data: exp } = await supabase.from('expenses').select('amount, date, description, category').eq('user_id', user.id)
       setExpenses(exp || [])
       if (exp) {
@@ -121,15 +120,15 @@ export default function Configuracion() {
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] || ''
 
   return (
-    <div className="min-h-screen bg-[#f5f3ee] dark:bg-[#0f0f1a]">
+    <div className="min-h-screen bg-[#f5f3ee]">
       <div className="px-4 pt-5 pb-2 flex items-start justify-between">
         <div>
           <p className="text-[11px] font-semibold tracking-widest text-[#8c887d] uppercase">{firstName}</p>
-          <p className="text-[13px] font-bold tracking-widest text-[#1f1f1f] dark:text-white uppercase">
+          <p className="text-[13px] font-bold tracking-widest text-[#1f1f1f] uppercase">
             {seccion === 'menu' ? 'Configuración' : seccion === 'perfil' ? 'Mi Perfil' : seccion === 'plan' ? 'Mi Plan Financiero' : 'Historial de meses'}
           </p>
         </div>
-        <button onClick={async () => { await supabase.auth.signOut(); router.push('/') }} className="w-9 h-9 rounded-full bg-[#ece8df] dark:bg-[#252540] flex items-center justify-center">
+        <button onClick={async () => { await supabase.auth.signOut(); router.push('/') }} className="w-9 h-9 rounded-full bg-[#ece8df] flex items-center justify-center">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5a4bc3" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
       </div>
@@ -145,17 +144,17 @@ export default function Configuracion() {
               { label: 'Historial de meses', icon: '🕐', onClick: () => setSeccion('historial') },
             ].map(item => (
               <button key={item.label} onClick={item.onClick}
-                className="w-full flex items-center gap-4 rounded-[22px] bg-white dark:bg-[#1e1e32] border border-[#ebe6db] dark:border-[#2e2e50] p-4">
+                className="w-full flex items-center gap-4 rounded-[22px] bg-white border border-[#ebe6db] p-4">
                 <div className="w-10 h-10 rounded-full bg-[#5a4bc3] flex items-center justify-center text-lg">{item.icon}</div>
-                <span className="text-[15px] font-medium text-[#1f1f1f] dark:text-white">{item.label}</span>
+                <span className="text-[15px] font-medium text-[#1f1f1f]">{item.label}</span>
                 <svg className="ml-auto" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8c887d" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
               </button>
             ))}
-            
-            <div className="flex items-center justify-between rounded-[22px] bg-white dark:bg-[#1e1e32] border border-[#ebe6db] dark:border-[#2e2e50] p-4">
+
+            <div className="flex items-center justify-between rounded-[22px] bg-white border border-[#ebe6db] p-4">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-full bg-[#5a4bc3] flex items-center justify-center text-lg">🔔</div>
-                <span className="text-[15px] font-medium text-[#1f1f1f] dark:text-white">Notificaciones</span>
+                <span className="text-[15px] font-medium text-[#1f1f1f]">Notificaciones</span>
               </div>
               <button onClick={async () => {
                 if (!('serviceWorker' in navigator) || !('PushManager' in window)) { alert('Tu navegador no soporta notificaciones push.'); return }
@@ -171,19 +170,21 @@ export default function Configuracion() {
                 Activar
               </button>
             </div>
+
             <button onClick={exportarPDF}
-              className="w-full flex items-center gap-4 rounded-[22px] bg-white dark:bg-[#1e1e32] border border-[#ebe6db] dark:border-[#2e2e50] p-4">
+              className="w-full flex items-center gap-4 rounded-[22px] bg-white border border-[#ebe6db] p-4">
               <div className="w-10 h-10 rounded-full bg-[#22c55e] flex items-center justify-center text-lg">📄</div>
-              <span className="text-[15px] font-medium text-[#1f1f1f] dark:text-white">Exportar resumen en PDF</span>
+              <span className="text-[15px] font-medium text-[#1f1f1f]">Exportar resumen en PDF</span>
               <svg className="ml-auto" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8c887d" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
+
             <button onClick={async () => {
               const res = await fetch('/api/reporte', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id, email: user.email, nombre: form.full_name }) })
               if (res.ok) setMsg('✅ Reporte enviado a tu email')
               else setMsg('❌ Error al enviar reporte')
-            }} className="w-full flex items-center gap-4 rounded-[22px] bg-white dark:bg-[#1e1e32] border border-[#ebe6db] dark:border-[#2e2e50] p-4">
+            }} className="w-full flex items-center gap-4 rounded-[22px] bg-white border border-[#ebe6db] p-4">
               <div className="w-10 h-10 rounded-full bg-[#5a4bc3] flex items-center justify-center text-lg">📧</div>
-              <span className="text-[15px] font-medium text-[#1f1f1f] dark:text-white">Enviar reporte por email</span>
+              <span className="text-[15px] font-medium text-[#1f1f1f]">Enviar reporte por email</span>
               <svg className="ml-auto" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8c887d" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
             {msg && <p className="text-center text-[13px] font-medium text-[#22c55e]">{msg}</p>}
@@ -200,26 +201,26 @@ export default function Configuracion() {
               <div className="w-20 h-20 rounded-full bg-[#5a4bc3] flex items-center justify-center text-3xl font-bold text-white mb-3">
                 {form.full_name.charAt(0).toUpperCase()}
               </div>
-              <p className="text-[16px] font-bold text-[#1f1f1f] dark:text-white">{form.full_name}</p>
+              <p className="text-[16px] font-bold text-[#1f1f1f]">{form.full_name}</p>
               <p className="text-[13px] text-[#8c887d]">{user.email}</p>
             </div>
-            <div className="rounded-[22px] border border-[#ebe6db] bg-white dark:bg-[#1e1e32] dark:border-[#2e2e50] p-4 space-y-3">
+            <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4 space-y-3">
               <p className="text-[12px] font-bold uppercase tracking-wide text-[#5a4bc3]">Datos personales</p>
               <div>
                 <p className="text-[11px] font-bold uppercase text-[#726d62] mb-1">Nombre completo</p>
                 <input type="text" value={form.full_name} onChange={e=>setForm(p=>({...p,full_name:e.target.value}))}
-                  className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] dark:bg-[#252540] dark:border-[#2e2e50] dark:text-white px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
+                  className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[11px] font-bold uppercase text-[#726d62] mb-1">Ingreso (S/)</p>
                   <input type="number" value={form.monthly_income} onChange={e=>setForm(p=>({...p,monthly_income:e.target.value}))}
-                    className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] dark:bg-[#252540] dark:border-[#2e2e50] dark:text-white px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
+                    className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase text-[#726d62] mb-1">Día cobro</p>
                   <input type="number" min="1" max="31" value={form.salary_day} onChange={e=>setForm(p=>({...p,salary_day:e.target.value}))}
-                    className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] dark:bg-[#252540] dark:border-[#2e2e50] dark:text-white px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
+                    className="w-full rounded-[14px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
                 </div>
               </div>
               {msg && <p className="text-[13px] text-[#22c55e] font-medium">{msg}</p>}
@@ -228,7 +229,7 @@ export default function Configuracion() {
                 {guardando ? 'Guardando...' : '💾 Guardar cambios'}
               </button>
             </div>
-            <div className="rounded-[22px] border border-[#ebe6db] bg-white dark:bg-[#1e1e32] dark:border-[#2e2e50] p-4">
+            <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
               <p className="text-[12px] font-bold uppercase tracking-wide text-[#5a4bc3] mb-2">Seguridad</p>
               <p className="text-[13px] text-[#8c887d]">Tu cuenta usa autenticación con Google. Para cambiar tu contraseña ve a tu cuenta de Google.</p>
             </div>
@@ -327,7 +328,7 @@ export default function Configuracion() {
               </div>
             ) : (
               <>
-                <div className="rounded-[22px] border border-[#ebe6db] bg-white dark:bg-[#1e1e32] p-4">
+                <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
                   <p className="text-[12px] font-bold uppercase tracking-wide text-[#5a4bc3] mb-3">Evolución de gastos</p>
                   {(() => {
                     const datos = [...historial].reverse()
@@ -397,9 +398,9 @@ export default function Configuracion() {
                   const diff = prev ? ((h.total - prev.total) / prev.total * 100) : null
                   const barWidth = Math.round((h.total / Math.max(...historial.map(x=>x.total))) * 100)
                   return (
-                    <div key={h.key} className="rounded-[22px] border border-[#ebe6db] bg-white dark:bg-[#1e1e32] dark:border-[#2e2e50] p-4">
+                    <div key={h.key} className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-[14px] font-bold text-[#1f1f1f] dark:text-white capitalize">{h.label}</p>
+                        <p className="text-[14px] font-bold text-[#1f1f1f] capitalize">{h.label}</p>
                         <div className="flex items-center gap-2">
                           {diff !== null && (
                             <span className={`text-[12px] font-bold ${diff > 0 ? 'text-red-500' : 'text-[#22c55e]'}`}>
@@ -422,7 +423,7 @@ export default function Configuracion() {
 
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#0f0f1a] border-t border-[#ece8df] dark:border-[#2e2e50]">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#ece8df]">
         <div className="max-w-md mx-auto flex">
           {[
             {href:'/dashboard',label:'Inicio',active:false,icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>},
