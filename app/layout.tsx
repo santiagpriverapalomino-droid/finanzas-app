@@ -16,17 +16,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" style={{colorScheme: 'light'}}>
-      <head>
-  <script dangerouslySetInnerHTML={{__html: `
-    document.documentElement.classList.remove('dark');
-  `}}/>
-  <link rel="manifest" href="/manifest.json" />
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#4C1D95" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Finti" />
-      </head>
+  <head>
+    <script dangerouslySetInnerHTML={{__html: `document.documentElement.classList.remove('dark');`}}/>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#4C1D95" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Finti" />
+  </head>
       <body className={inter.className}>
         {children}
         <script dangerouslySetInnerHTML={{__html: `
