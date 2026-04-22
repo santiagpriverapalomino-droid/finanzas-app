@@ -7,6 +7,7 @@ export async function GET() {
       { next: { revalidate: 3600 } }
     )
     const data = await res.json()
+    console.log('GNews response:', JSON.stringify(data).slice(0, 500))
 
     if (!data.articles) {
       return NextResponse.json({ ok: false, error: 'Sin artículos' }, { status: 500 })
