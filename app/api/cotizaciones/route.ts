@@ -4,6 +4,7 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 // Cache en memoria
 let cache: { data: any[], timestamp: number } | null = null
+const FORCE_REFRESH = '2' // cambia este número para limpiar cache
 const CACHE_DURATION = 60 * 60 * 1000 // 1 hora
 
 const SIMBOLOS_DEFAULT = [

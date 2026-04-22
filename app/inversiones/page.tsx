@@ -358,7 +358,7 @@ cargarNoticias()
       </div>
     </div>
   ))}
-  <p className="text-[10px] text-[#8c887d] mt-2 text-center">Precios de Yahoo Finance. Actualizado cada hora.</p>
+  <p className="text-[10px] text-[#8c887d] mt-2 text-center">Precios de Alpha Vantage. Actualizado cada hora.</p>
 </div>
 
        {/* 4. Noticias financieras */}
