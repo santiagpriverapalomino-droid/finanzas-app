@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   try {
     const res = await fetch(
-      `https://gnews.io/api/v4/search?q=inversiones+finanzas+bolsa+bitcoin&lang=es&country=pe&max=6&apikey=${process.env.GNEWS_API_KEY}`,
+      `https://gnews.io/api/v4/top-headlines?category=business&lang=es&max=6&apikey=${process.env.GNEWS_API_KEY}`,
       { cache: 'no-store' }
     )
     const data = await res.json()
