@@ -48,10 +48,10 @@ const [nuevaCot, setNuevaCot] = useState({ symbol: '', nombre: '', sub: '' })
 const [noticias, setNoticias] = useState<any[]>([])
 const [cargandoNoticias, setCargandoNoticias] = useState(true)
 const [simbolosGuardados, setSimbolosGuardados] = useState([
-  { symbol: '^GSPC', nombre: 'S&P 500', sub: 'Índice · USD' },
-  { symbol: 'BTC', nombre: 'Bitcoin', sub: 'Cripto · USD', cripto: true },
-  { symbol: 'GLD', nombre: 'Oro', sub: 'ETF · USD' },
-  { symbol: 'USD', nombre: 'USD/PEN', sub: 'Tipo de cambio', fx: true },
+  { symbol: 'SPY', nombre: 'S&P 500 ETF', sub: 'ETF · USD' },
+{ symbol: 'BTC', nombre: 'Bitcoin', sub: 'Cripto · USD', cripto: true },
+{ symbol: 'GC=F', nombre: 'Oro (Futuros)', sub: 'COMEX · USD' },
+{ symbol: 'USD', nombre: 'USD/PEN', sub: 'Tipo de cambio', fx: true },
 ])
 
   const [dist, setDist] = useState([
@@ -75,10 +75,10 @@ const [simbolosGuardados, setSimbolosGuardados] = useState([
       setLoading(false)
       // Cargar cotizaciones
 const simbolosIniciales = [
-  { symbol: '^GSPC', nombre: 'S&P 500', sub: 'Índice · USD' },
-  { symbol: 'BTC', nombre: 'Bitcoin', sub: 'Cripto · USD', cripto: true },
-  { symbol: 'GLD', nombre: 'Oro', sub: 'ETF · USD' },
-  { symbol: 'USD', nombre: 'USD/PEN', sub: 'Tipo de cambio', fx: true },
+  { symbol: 'SPY', nombre: 'S&P 500 ETF', sub: 'ETF · USD' },
+{ symbol: 'BTC', nombre: 'Bitcoin', sub: 'Cripto · USD', cripto: true },
+{ symbol: 'GC=F', nombre: 'Oro (Futuros)', sub: 'COMEX · USD' },
+{ symbol: 'USD', nombre: 'USD/PEN', sub: 'Tipo de cambio', fx: true },
 ]
 const cargarCotizaciones = async (simbolos = simbolosIniciales) => {
   setCargandoCot(true)
