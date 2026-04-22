@@ -17,9 +17,16 @@ interface Investment {
 const TIPOS = [
   { id: 'fondo_mutuo', label: 'Fondo mutuo', color: '#5b4bc4', rec: 'Rendimiento histórico 6-8% anual en Perú. Bajo riesgo. Puedes empezar desde S/100 en Credicorp, BBVA o Interbank. Liquidez en 24-48h.' },
   { id: 'deposito_plazo', label: 'Depósito plazo', color: '#1fa18b', rec: 'Rendimiento 3-6% anual según plazo y banco. Riesgo casi nulo. Tu dinero queda bloqueado hasta el vencimiento. Ideal para dinero que no necesitarás pronto.' },
-  { id: 'acciones', label: 'Acciones / ETFs', color: '#f1a22e', rec: 'Rendimiento variable, históricamente 8-12% anual en ETFs globales (S&P 500). Riesgo medio-alto. Requiere horizonte de largo plazo (+5 años). En Perú puedes operar en la BVL o usar brokers internacionales.' },
-  { id: 'cripto', label: 'Cripto (máx. 10%)', color: '#db6334', rec: 'Alta volatilidad. Bitcoin y Ethereum son los más establecidos. Solo invierte lo que puedes perder completamente. Nunca más del 10% de tu portafolio. No es sustituto del ahorro.' },
+  { id: 'acciones', label: 'Acciones / ETFs', color: '#f1a22e', rec: 'Rendimiento variable, históricamente 8-12% anual en ETFs globales (S&P 500). Riesgo medio-alto. Requiere horizonte de largo plazo (+5 años).' },
+  { id: 'cripto', label: 'Cripto (máx. 10%)', color: '#db6334', rec: 'Alta volatilidad. Bitcoin y Ethereum son los más establecidos. Solo invierte lo que puedes perder completamente. Nunca más del 10% de tu portafolio.' },
   { id: 'otro', label: 'Otro', color: '#94a3b8', rec: 'Incluye inmuebles, negocios propios, préstamos P2P, etc. Evalúa bien el riesgo y la liquidez antes de invertir.' },
+]
+
+const NOTICIAS = [
+  { fuente: 'BVL', tiempo: 'Hace 2h', titulo: 'Fondos mutuos peruanos cierran el mes con rendimiento positivo de 6.8%', tipo: 'fondo_mutuo' },
+  { fuente: 'Bloomberg', tiempo: 'Hace 4h', titulo: 'La Fed mantiene tasas: ¿qué significa para tus inversiones en ETFs?', tipo: 'acciones' },
+  { fuente: 'Gestión', tiempo: 'Hace 6h', titulo: 'Depósitos a plazo en soles alcanzan tasa promedio de 5.2% en bancos peruanos', tipo: 'deposito_plazo' },
+  { fuente: 'CoinDesk', tiempo: 'Hace 8h', titulo: 'Bitcoin supera los $64,000: ¿es momento de rebalancear tu portafolio?', tipo: 'cripto' },
 ]
 
 export default function Inversiones() {
@@ -29,15 +36,17 @@ export default function Inversiones() {
   const [investments, setInvestments] = useState<Investment[]>([])
   const [loading, setLoading] = useState(true)
   const [isAdding, setIsAdding] = useState(false)
-  const [editandoDist, setEditandoDist] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [editando, setEditando] = useState<Investment | null>(null)
-const [editForm, setEditForm] = useState({ type: 'fondo_mutuo', name: '', amount: '', yield_percent: '', start_date: '', end_date: '', notes: '' })
-  const [form, setForm] = useState({
-    type: 'fondo_mutuo', name: '', amount: '', yield_percent: '', start_date: todayStr(), end_date: '', notes: ''
-  })
+  const [editForm, setEditForm] = useState({ type: 'fondo_mutuo', name: '', amount: '', yield_percent: '', start_date: '', end_date: '', notes: '' })
+  const [form, setForm] = useState({ type: 'fondo_mutuo', name: '', amount: '', yield_percent: '', start_date: todayStr(), end_date: '', notes: '' })
+  const [cotizaciones, setCotizaciones] = useState([
+    { nombre: 'S&P 500', sub: 'ETF · USD', precio: '$5,842', cambio: '+0.82%', positivo: true },
+    { nombre: 'Bitcoin', sub: 'Cripto · USD', precio: '$64,210', cambio: '+2.1%', positivo: true },
+    { nombre: 'BVL General', sub: 'Índice · PEN', precio: 'S/21,340', cambio: '-0.3%', positivo: false },
+    { nombre: 'Oro', sub: 'Commodity · USD', precio: '$2,318', cambio: '+0.5%', positivo: true },
+  ])
 
-  // Distribución personalizable
   const [dist, setDist] = useState([
     { label: 'Fondos mutuos', pct: 40, color: '#5b4bc4' },
     { label: 'Depósito a plazo', pct: 30, color: '#1fa18b' },
@@ -62,23 +71,12 @@ const [editForm, setEditForm] = useState({ type: 'fondo_mutuo', name: '', amount
   }, [])
 
   const totalInvertido = useMemo(() => investments.reduce((s,i) => s + Number(i.amount), 0), [investments])
-
   const rendimientoPromedio = useMemo(() => {
     if (investments.length === 0) return 0
     const total = investments.reduce((s,i) => s + Number(i.amount), 0)
     if (total === 0) return 0
     return investments.reduce((s,i) => s + Number(i.amount) * Number(i.yield_percent), 0) / total
   }, [investments])
-
-  const proyeccion = useMemo(() => {
-    const r = (rendimientoPromedio || 7) / 100
-    const base = totalInvertido || 0
-    return {
-      y1: base * Math.pow(1 + r, 1),
-      y3: base * Math.pow(1 + r, 3),
-      y5: base * Math.pow(1 + r, 5),
-    }
-  }, [totalInvertido, rendimientoPromedio])
 
   const income = profile?.monthly_income || 0
   const recomendadoMes = Math.round(income * 0.1)
@@ -88,57 +86,49 @@ const [editForm, setEditForm] = useState({ type: 'fondo_mutuo', name: '', amount
     if (totalInvertido === 0) return alerts
     const criptoTotal = investments.filter(i => i.type === 'cripto').reduce((s,i) => s + Number(i.amount), 0)
     if (criptoTotal / totalInvertido > 0.1) {
-      alerts.push({ type: 'danger', msg: `Estás sobreinvertido en cripto (${Math.round(criptoTotal/totalInvertido*100)}%). El riesgo es muy alto. Se recomienda máximo 10% del portafolio.` })
+      alerts.push({ type: 'danger', msg: `Estás sobreinvertido en cripto (${Math.round(criptoTotal/totalInvertido*100)}%). Se recomienda máximo 10%.` })
     }
-    const vencenProximo = investments.filter(i => {
+    investments.filter(i => {
       if (!i.end_date) return false
       const dias = (new Date(i.end_date).getTime() - Date.now()) / (1000*60*60*24)
       return dias <= 30 && dias > 0
+    }).forEach(i => {
+      alerts.push({ type: 'warning', msg: `"${i.name}" vence en menos de 30 días. ¿Renovar o redirigir?` })
     })
-    vencenProximo.forEach(i => {
-      alerts.push({ type: 'warning', msg: `"${i.name}" vence en menos de 30 días. Decide si renovar o redirigir el capital.` })
-    })
-    if (income > 0 && totalInvertido < recomendadoMes * 3) {
-      alerts.push({ type: 'warning', msg: `Tu portafolio es pequeño aún. Intenta invertir al menos S/${recomendadoMes}/mes para hacer crecer tu patrimonio.` })
-    }
     return alerts
-  }, [investments, totalInvertido, income, recomendadoMes])
+  }, [investments, totalInvertido])
 
   const tipoInfo = TIPOS.find(t => t.id === form.type)
 
   const agregar = async () => {
-  if (!form.name || !form.amount) return
-  setGuardando(true)
-  const { data, error } = await supabase.from('investments').insert({
-    user_id: user.id, type: form.type, name: form.name,
-    amount: parseFloat(form.amount), yield_percent: parseFloat(form.yield_percent) || 0,
-    start_date: form.start_date, end_date: form.end_date || null, notes: form.notes || null
-  }).select()
-  if (!error && data) {
-    setInvestments(prev => [...prev, data[0]])
-    setForm({ type:'fondo_mutuo', name:'', amount:'', yield_percent:'', start_date:todayStr(), end_date:'', notes:'' })
-    setIsAdding(false)
+    if (!form.name || !form.amount) return
+    setGuardando(true)
+    const { data, error } = await supabase.from('investments').insert({
+      user_id: user.id, type: form.type, name: form.name,
+      amount: parseFloat(form.amount), yield_percent: parseFloat(form.yield_percent) || 0,
+      start_date: form.start_date, end_date: form.end_date || null, notes: form.notes || null
+    }).select()
+    if (!error && data) {
+      setInvestments(prev => [...prev, data[0]])
+      setForm({ type:'fondo_mutuo', name:'', amount:'', yield_percent:'', start_date:todayStr(), end_date:'', notes:'' })
+      setIsAdding(false)
+    }
+    setGuardando(false)
   }
-  setGuardando(false)
-}
 
-const guardarEdicion = async () => {
-  if (!editando || !editForm.name || !editForm.amount) return
-  setGuardando(true)
-  await supabase.from('investments').update({
-    type: editForm.type,
-    name: editForm.name,
-    amount: parseFloat(editForm.amount),
-    yield_percent: parseFloat(editForm.yield_percent) || 0,
-    start_date: editForm.start_date,
-    end_date: editForm.end_date || null,
-    notes: editForm.notes || null,
-  }).eq('id', editando.id)
-  const { data } = await supabase.from('investments').select('*').eq('user_id', user.id).order('created_at')
-  setInvestments(data || [])
-  setEditando(null)
-  setGuardando(false)
-}
+  const guardarEdicion = async () => {
+    if (!editando || !editForm.name || !editForm.amount) return
+    setGuardando(true)
+    await supabase.from('investments').update({
+      type: editForm.type, name: editForm.name,
+      amount: parseFloat(editForm.amount), yield_percent: parseFloat(editForm.yield_percent) || 0,
+      start_date: editForm.start_date, end_date: editForm.end_date || null, notes: editForm.notes || null,
+    }).eq('id', editando.id)
+    const { data } = await supabase.from('investments').select('*').eq('user_id', user.id).order('created_at')
+    setInvestments(data || [])
+    setEditando(null)
+    setGuardando(false)
+  }
 
   const eliminar = async (id: string) => {
     await supabase.from('investments').delete().eq('id', id)
@@ -148,6 +138,24 @@ const guardarEdicion = async () => {
   if (loading) return <div className="min-h-screen bg-[#f5f3ee] flex items-center justify-center"><p className="text-[#8c887d]">Cargando...</p></div>
 
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] || ''
+
+  const rendimientos: Record<string, number> = { 'Fondos mutuos': 7, 'Depósito a plazo': 4.5, 'Acciones / ETFs': 10, 'Cripto (máx.)': 20 }
+  const riesgos: Record<string, number> = { 'Fondos mutuos': 2, 'Depósito a plazo': 1, 'Acciones / ETFs': 3.5, 'Cripto (máx.)': 5 }
+  const rendPonderado = dist.reduce((s, d) => s + (d.pct / 100) * (rendimientos[d.label] || 5), 0)
+  const riesgoPonderado = dist.reduce((s, d) => s + (d.pct / 100) * (riesgos[d.label] || 2), 0)
+  const base = totalInvertido || 1000
+  const y1 = base * Math.pow(1 + rendPonderado / 100, 1)
+  const y5 = base * Math.pow(1 + rendPonderado / 100, 5)
+  const y10 = base * Math.pow(1 + rendPonderado / 100, 10)
+  const nivelRiesgo = riesgoPonderado < 2 ? { label: 'Conservador', color: '#22c55e' }
+    : riesgoPonderado < 3.5 ? { label: 'Moderado', color: '#f1a22e' }
+    : { label: 'Agresivo', color: '#b24f58' }
+
+  // Noticias filtradas por tipos de inversión del usuario
+  const tiposUsuario = investments.map(i => i.type)
+  const noticiasFiltradas = NOTICIAS.filter(n =>
+    tiposUsuario.length === 0 || tiposUsuario.includes(n.tipo) || true
+  )
 
   return (
     <div className="min-h-screen bg-[#f5f3ee]">
@@ -168,7 +176,7 @@ const guardarEdicion = async () => {
 
       <div className="px-4 pb-32 space-y-4 mt-2">
 
-        {/* Cards totales */}
+        {/* 1. Resumen */}
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-[22px] bg-[#f3f0e8] p-4 border border-[#ebe6db]">
             <p className="text-[11px] font-bold uppercase tracking-wide text-[#726d62]">Total invertido</p>
@@ -177,187 +185,126 @@ const guardarEdicion = async () => {
           <div className="rounded-[22px] bg-[#f3f0e8] p-4 border border-[#ebe6db]">
             <p className="text-[11px] font-bold uppercase tracking-wide text-[#726d62]">Rendimiento est.</p>
             <p className="mt-1 text-[22px] font-bold text-[#22c55e]">+{rendimientoPromedio.toFixed(1)}%</p>
-          </div>
-        </div>
-
-        {/* Simulador de portafolio */}
-<div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
-  <div className="flex items-center justify-between mb-1">
-    <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d]">Simulador de portafolio</p>
-    <button onClick={() => setEditandoDist(!editandoDist)}
-      className="text-[12px] font-bold text-[#5a4bc3] bg-[#ede9ff] px-3 py-1 rounded-full">
-      {editandoDist ? 'Listo ✓' : 'Editar'}
-    </button>
-  </div>
-  <p className="text-[12px] text-[#8c887d] mb-3">Ajusta tu distribución y ve el impacto en tiempo real</p>
-
-  {editandoDist && (
-    <div className={`mb-3 text-[12px] font-bold text-center ${totalDist === 100 ? 'text-[#22c55e]' : 'text-[#b24f58]'}`}>
-      Total: {totalDist}% {totalDist === 100 ? '✅' : '⚠️ debe sumar 100%'}
-    </div>
-  )}
-
-  {dist.map((d, i) => (
-    <div key={d.label} className="mb-3">
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full" style={{background: d.color}}/>
-          <span className="text-[13px] text-[#403c37]">{d.label}</span>
-        </div>
-        {editandoDist ? (
-          <input type="number" min="0" max="100" value={d.pct}
-            onChange={e => {
-              const newDist = [...dist]
-              newDist[i] = {...newDist[i], pct: parseInt(e.target.value) || 0}
-              setDist(newDist)
-            }}
-            className="w-16 rounded-[10px] border border-[#e5dfd5] bg-[#f7f4ed] px-2 py-1 text-[13px] font-bold text-center outline-none focus:border-[#5a4bc3]"/>
-        ) : (
-          <span className="text-[13px] font-bold text-[#1f1f1f]">{d.pct}%</span>
-        )}
-      </div>
-      {editandoDist ? (
-        <input type="range" min="0" max="100" value={d.pct}
-          onChange={e => {
-            const newDist = [...dist]
-            newDist[i] = {...newDist[i], pct: parseInt(e.target.value)}
-            setDist(newDist)
-          }}
-          className="w-full accent-[#5a4bc3]"/>
-      ) : (
-        <div className="h-2 rounded-full bg-[#ece7dd]">
-          <div className="h-2 rounded-full transition-all" style={{width:`${d.pct}%`, background: d.color}}/>
-        </div>
-      )}
-    </div>
-  ))}
-
-  {/* Métricas en tiempo real */}
-  {(() => {
-    const rendimientos: Record<string, number> = {
-      'Fondos mutuos': 7, 'Depósito a plazo': 4.5, 'Acciones / ETFs': 10, 'Cripto (máx.)': 20
-    }
-    const riesgos: Record<string, number> = {
-      'Fondos mutuos': 2, 'Depósito a plazo': 1, 'Acciones / ETFs': 3.5, 'Cripto (máx.)': 5
-    }
-    const rendPonderado = dist.reduce((s, d) => s + (d.pct / 100) * (rendimientos[d.label] || 5), 0)
-    const riesgoPonderado = dist.reduce((s, d) => s + (d.pct / 100) * (riesgos[d.label] || 2), 0)
-    const base = totalInvertido || 1000
-    const y1 = base * Math.pow(1 + rendPonderado / 100, 1)
-    const y5 = base * Math.pow(1 + rendPonderado / 100, 5)
-    const y10 = base * Math.pow(1 + rendPonderado / 100, 10)
-
-    const nivelRiesgo = riesgoPonderado < 2 ? { label: 'Conservador', color: '#22c55e' }
-      : riesgoPonderado < 3.5 ? { label: 'Moderado', color: '#f1a22e' }
-      : { label: 'Agresivo', color: '#b24f58' }
-
-    return (
-      <div className="mt-4 space-y-3">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-[16px] bg-white border border-[#ebe6db] p-3 text-center">
-            <p className="text-[10px] text-[#726d62] uppercase font-bold mb-1">Rendimiento est.</p>
-            <p className="text-[20px] font-bold text-[#22c55e]">{rendPonderado.toFixed(1)}%</p>
             <p className="text-[10px] text-[#8c887d]">anual promedio</p>
           </div>
-          <div className="rounded-[16px] bg-white border border-[#ebe6db] p-3 text-center">
-            <p className="text-[10px] text-[#726d62] uppercase font-bold mb-1">Nivel de riesgo</p>
-            <p className="text-[16px] font-bold mt-1" style={{color: nivelRiesgo.color}}>{nivelRiesgo.label}</p>
-            <div className="flex justify-center gap-1 mt-1">
-              {[1,2,3,4,5].map(n => (
-                <div key={n} className="w-3 h-1.5 rounded-full" style={{background: n <= Math.round(riesgoPonderado) ? nivelRiesgo.color : '#ece7dd'}}/>
-              ))}
+        </div>
+
+        {/* 2. Simulador de portafolio */}
+        <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d]">Simulador</p>
+            <div className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${totalDist === 100 ? 'bg-[#e0fdf4] text-[#0f6e56]' : 'bg-[#fef3c7] text-[#b45309]'}`}>
+              {totalDist}% {totalDist === 100 ? '✓' : '⚠️'}
             </div>
           </div>
-        </div>
+          <p className="text-[12px] text-[#8c887d] mb-3">Mueve los sliders y ve el impacto en tiempo real</p>
 
-        <div className="rounded-[16px] bg-white border border-[#ebe6db] p-3">
-          <p className="text-[11px] font-bold uppercase text-[#726d62] mb-2">Proyección con tu distribución actual</p>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            {[{label:'1 año', val:y1},{label:'5 años', val:y5},{label:'10 años', val:y10}].map(p => (
-              <div key={p.label}>
-                <p className="text-[10px] text-[#8c887d]">{p.label}</p>
-                <p className="text-[14px] font-bold text-[#5a4bc3]">S/{Math.round(p.val).toLocaleString('es-PE')}</p>
-                <p className="text-[10px] text-[#22c55e] font-bold">+S/{Math.round(p.val - base).toLocaleString('es-PE')}</p>
+          {dist.map((d, i) => (
+            <div key={d.label} className="mb-3">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{background: d.color}}/>
+                  <span className="text-[13px] text-[#403c37]">{d.label}</span>
+                </div>
+                <span className="text-[13px] font-bold text-[#1f1f1f]">{d.pct}%</span>
               </div>
-            ))}
-          </div>
-          {/* Barra visual de crecimiento */}
-          <div className="mt-3 relative h-6">
-            {[{val: y1, label:'1a'}, {val: y5, label:'5a'}, {val: y10, label:'10a'}].map((p, i) => (
-              <div key={i} className="absolute bottom-0 flex flex-col items-center" style={{left: `${i * 40}%`, width: '30%'}}>
-                <div className="w-full rounded-t-[4px]" style={{
-                  height: `${Math.round((p.val - base) / (y10 - base) * 20) + 4}px`,
-                  background: '#5a4bc3',
-                  opacity: 0.3 + i * 0.3
-                }}/>
+              <input type="range" min="0" max="100" value={d.pct}
+                onChange={e => {
+                  const newDist = [...dist]
+                  newDist[i] = {...newDist[i], pct: parseInt(e.target.value)}
+                  setDist(newDist)
+                }}
+                className="w-full accent-[#5a4bc3]"/>
+            </div>
+          ))}
+
+          {/* Métricas resultado */}
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <div className="rounded-[14px] bg-[#f5f3ee] border border-[#ebe6db] p-3 text-center">
+              <p className="text-[10px] text-[#726d62] uppercase font-bold mb-1">Rendimiento est.</p>
+              <p className="text-[22px] font-bold text-[#22c55e]">{rendPonderado.toFixed(1)}%</p>
+              <p className="text-[10px] text-[#8c887d]">anual promedio</p>
+            </div>
+            <div className="rounded-[14px] bg-[#f5f3ee] border border-[#ebe6db] p-3 text-center">
+              <p className="text-[10px] text-[#726d62] uppercase font-bold mb-1">Nivel de riesgo</p>
+              <p className="text-[16px] font-bold mt-1" style={{color: nivelRiesgo.color}}>{nivelRiesgo.label}</p>
+              <div className="flex justify-center gap-1 mt-1.5">
+                {[1,2,3,4,5].map(n => (
+                  <div key={n} className="w-4 h-1.5 rounded-full" style={{background: n <= Math.round(riesgoPonderado) ? nivelRiesgo.color : '#ece7dd'}}/>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
-        </div>
 
-        <p className="text-[11px] text-[#8c887d] text-center">
-          💡 Basado en rendimientos históricos. No garantiza resultados futuros.
-        </p>
-      </div>
-    )
-  })()}
-</div>
-
-        {/* Proyección */}
-<div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4" data-tour="proyeccion">          <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d] mb-1">📈 Proyección de tu inversión</p>
-          <p className="text-[12px] text-[#8c887d] mb-3">
-            {totalInvertido > 0 ? `Basado en ${fmt(totalInvertido)} invertidos al ${rendimientoPromedio.toFixed(1)}% anual` : 'Basado en 7% anual de referencia'}
-          </p>
-          <div className="grid grid-cols-3 gap-2">
-            {[{label:'1 año', val:proyeccion.y1},{label:'3 años', val:proyeccion.y3},{label:'5 años', val:proyeccion.y5}].map(p => (
-              <div key={p.label} className="rounded-[16px] bg-[#f3f0e8] p-3 text-center border border-[#ebe6db]">
-                <p className="text-[11px] text-[#726d62] font-bold uppercase">{p.label}</p>
-                <p className="text-[15px] font-bold text-[#5a4bc3] mt-1">{fmt(p.val)}</p>
-                {totalInvertido > 0 && (
-                  <p className="text-[10px] text-[#22c55e] font-bold">+{fmt(p.val - totalInvertido)}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recomendador */}
-        {income > 0 && (
-          <div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
-            <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d] mb-2">🤖 ¿Cuánto debería invertir?</p>
-            <p className="text-[13px] text-[#5d594f] mb-2">
-              Con tu ingreso de <span className="font-bold text-[#5a4bc3]">{fmt(income)}</span> te recomendamos invertir <span className="font-bold text-[#5a4bc3]">{fmt(recomendadoMes)}/mes</span> (10% del ingreso):
-            </p>
-            <div className="space-y-1">
-              {dist.map(d => (
-                <div key={d.label} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{background: d.color}}/>
-                    <span className="text-[12px] text-[#5d594f]">{d.label}</span>
-                  </div>
-                  <span className="text-[12px] font-bold text-[#1f1f1f]">{fmt(Math.round(recomendadoMes * d.pct / 100))}</span>
+          {/* Proyección única */}
+          <div className="rounded-[14px] bg-[#f5f3ee] border border-[#ebe6db] p-3 mt-2">
+            <p className="text-[11px] font-bold uppercase text-[#726d62] mb-2">Proyección a futuro</p>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {[{label:'1 año', val:y1},{label:'5 años', val:y5},{label:'10 años', val:y10}].map(p => (
+                <div key={p.label}>
+                  <p className="text-[10px] text-[#8c887d]">{p.label}</p>
+                  <p className="text-[14px] font-bold text-[#5a4bc3]">S/{Math.round(p.val).toLocaleString('es-PE')}</p>
+                  <p className="text-[10px] text-[#22c55e] font-bold">+S/{Math.round(p.val - base).toLocaleString('es-PE')}</p>
                 </div>
               ))}
             </div>
-            <p className="text-[12px] text-[#8c887d] mt-3">
-              💡 Primero asegúrate de tener un fondo de emergencia de 3 meses de gastos antes de invertir.
-            </p>
           </div>
-        )}
+          <p className="text-[11px] text-[#8c887d] text-center mt-2">💡 Basado en rendimientos históricos. No garantiza resultados futuros.</p>
+        </div>
 
-        {/* Alertas */}
-        <div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
-          <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d] mb-2">⚠️ Alertas de tu portafolio</p>
-          {alertas.length === 0 ? (
-            <p className="text-[13px] text-[#22c55e] font-medium">✓ Tu portafolio está en buen estado</p>
-          ) : alertas.map((a, i) => (
-            <div key={i} className={`rounded-[12px] p-3 mb-2 text-[13px] ${a.type==='danger'?'bg-red-50 text-red-700 border border-red-200':'bg-yellow-50 text-yellow-700 border border-yellow-200'}`}>
-              {a.msg}
+        {/* 3. Cotizaciones en tiempo real */}
+        <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d]">Cotizaciones</p>
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e]"/>
+              <span className="text-[11px] text-[#22c55e] font-bold">En vivo</span>
+            </div>
+          </div>
+          {cotizaciones.map((c, i) => (
+            <div key={i} className={`flex items-center justify-between py-2.5 ${i < cotizaciones.length-1 ? 'border-b border-[#f0ebe0]' : ''}`}>
+              <div>
+                <p className="text-[14px] font-semibold text-[#1f1f1f]">{c.nombre}</p>
+                <p className="text-[11px] text-[#8c887d]">{c.sub}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[14px] font-bold text-[#1f1f1f]">{c.precio}</p>
+                <p className={`text-[12px] font-bold ${c.positivo ? 'text-[#22c55e]' : 'text-[#b24f58]'}`}>
+                  {c.positivo ? '▲' : '▼'} {c.cambio}
+                </p>
+              </div>
+            </div>
+          ))}
+          <p className="text-[10px] text-[#8c887d] mt-2 text-center">Precios referenciales. Actualizado cada hora.</p>
+        </div>
+
+        {/* 4. Noticias financieras */}
+        <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d]">Noticias para ti</p>
+            <span className="text-[11px] text-[#5a4bc3] font-bold">Hoy</span>
+          </div>
+          {noticiasFiltradas.map((n, i) => (
+            <div key={i} className={`py-2.5 ${i < noticiasFiltradas.length-1 ? 'border-b border-[#f0ebe0]' : ''}`}>
+              <p className="text-[10px] font-bold text-[#8c887d] uppercase">{n.fuente} · {n.tiempo}</p>
+              <p className="text-[13px] text-[#1f1f1f] font-medium leading-tight mt-1">{n.titulo}</p>
             </div>
           ))}
         </div>
 
-        {/* Mis inversiones activas */}
+        {/* 5. Alertas */}
+        {alertas.length > 0 && (
+          <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
+            <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d] mb-2">⚠️ Alertas</p>
+            {alertas.map((a, i) => (
+              <div key={i} className={`rounded-[12px] p-3 mb-2 text-[13px] ${a.type==='danger'?'bg-red-50 text-red-700 border border-red-200':'bg-yellow-50 text-yellow-700 border border-yellow-200'}`}>
+                {a.msg}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 6. Mis inversiones activas */}
         <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d]">Mis inversiones activas</p>
         {investments.length === 0 ? (
           <div className="rounded-[22px] border border-dashed border-[#c8bbf5] bg-[#faf9ff] p-8 text-center">
@@ -377,13 +324,15 @@ const guardarEdicion = async () => {
                   </div>
                   <p className="text-[12px] text-[#8c887d]">{tipo?.label}</p>
                 </div>
-                <button onClick={() => { setEditando(inv); setEditForm({ type: inv.type, name: inv.name, amount: String(inv.amount), yield_percent: String(inv.yield_percent), start_date: inv.start_date, end_date: inv.end_date || '', notes: inv.notes || '' }) }}
-  className="w-8 h-8 rounded-full flex items-center justify-center text-[#9b968d] hover:text-[#5a4bc3]">
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-</button>
-<button onClick={() => eliminar(inv.id)} className="w-8 h-8 rounded-full flex items-center justify-center text-[#9b968d] hover:text-[#b24f58]">
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-</button>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => { setEditando(inv); setEditForm({ type: inv.type, name: inv.name, amount: String(inv.amount), yield_percent: String(inv.yield_percent), start_date: inv.start_date, end_date: inv.end_date || '', notes: inv.notes || '' }) }}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-[#9b968d] hover:text-[#5a4bc3]">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button onClick={() => eliminar(inv.id)} className="w-8 h-8 rounded-full flex items-center justify-center text-[#9b968d] hover:text-[#b24f58]">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                  </button>
+                </div>
               </div>
               <div className="flex justify-between mb-2">
                 <div>
@@ -395,12 +344,8 @@ const guardarEdicion = async () => {
                   <p className="text-[18px] font-bold text-[#22c55e]">+{inv.yield_percent}%</p>
                 </div>
               </div>
-              {inv.end_date && (
-                <p className="text-[12px] text-[#8c887d]">Vence: {new Date(inv.end_date).toLocaleDateString('es-PE',{day:'numeric',month:'long',year:'numeric'})}</p>
-              )}
-              {inv.notes && (
-                <p className="text-[12px] text-[#8c887d] mt-1 italic">"{inv.notes}"</p>
-              )}
+              {inv.end_date && <p className="text-[12px] text-[#8c887d]">Vence: {new Date(inv.end_date).toLocaleDateString('es-PE',{day:'numeric',month:'long',year:'numeric'})}</p>}
+              {inv.notes && <p className="text-[12px] text-[#8c887d] mt-1 italic">"{inv.notes}"</p>}
             </div>
           )
         })}
@@ -446,21 +391,18 @@ const guardarEdicion = async () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[12px] text-[#726d62] mb-1">Fecha inicio</p>
-                  <input type="date" value={form.start_date}
-                    onChange={e=>setForm(p=>({...p,start_date:e.target.value}))}
+                  <input type="date" value={form.start_date} onChange={e=>setForm(p=>({...p,start_date:e.target.value}))}
                     className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
                 </div>
                 <div>
                   <p className="text-[12px] text-[#726d62] mb-1">Vencimiento (opcional)</p>
-                  <input type="date" value={form.end_date}
-                    onChange={e=>setForm(p=>({...p,end_date:e.target.value}))}
+                  <input type="date" value={form.end_date} onChange={e=>setForm(p=>({...p,end_date:e.target.value}))}
                     className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
                 </div>
               </div>
               <textarea placeholder="Notas (opcional)" value={form.notes}
                 onChange={e=>setForm(p=>({...p,notes:e.target.value}))}
-                rows={2}
-                className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff] resize-none"/>
+                rows={2} className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff] resize-none"/>
               <button onClick={agregar} disabled={guardando||!form.name||!form.amount}
                 className="w-full rounded-[18px] bg-[#5a4bc3] py-3 text-[15px] font-semibold text-white disabled:opacity-40">
                 {guardando?'Guardando...':'Guardar inversión'}
@@ -469,65 +411,62 @@ const guardarEdicion = async () => {
           </div>
         </div>
       )}
-{editando && (
-  <div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm" onClick={() => setEditando(null)}>
-    <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-[#fcfbf8] p-5 pb-8 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-      <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#ddd7cc]"/>
-      <h2 className="text-[18px] font-semibold text-[#24211d] mb-4">Editar inversión</h2>
-      <div className="space-y-3">
-        <div className="flex flex-wrap gap-2">
-          {TIPOS.map(t => (
-            <button key={t.id} onClick={() => setEditForm(p=>({...p,type:t.id}))}
-              className={`rounded-full px-3 py-1.5 text-[12px] font-bold transition-all ${editForm.type===t.id?'text-white':'border border-[#e5dfd5] text-[#47433d]'}`}
-              style={editForm.type===t.id?{background:t.color}:{}}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-        <input type="text" placeholder="Nombre / Entidad" value={editForm.name}
-          onChange={e=>setEditForm(p=>({...p,name:e.target.value}))}
-          className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
-        <div className="grid grid-cols-2 gap-3">
-          <input type="number" placeholder="Monto (S/)" value={editForm.amount}
-            onChange={e=>setEditForm(p=>({...p,amount:e.target.value}))}
-            className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
-          <input type="number" placeholder="Rendimiento % anual" value={editForm.yield_percent}
-            onChange={e=>setEditForm(p=>({...p,yield_percent:e.target.value}))}
-            className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <p className="text-[12px] text-[#726d62] mb-1">Fecha inicio</p>
-            <input type="date" value={editForm.start_date}
-              onChange={e=>setEditForm(p=>({...p,start_date:e.target.value}))}
-              className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+
+      {/* Modal editar */}
+      {editando && (
+        <div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm" onClick={() => setEditando(null)}>
+          <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-[#fcfbf8] p-5 pb-8 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#ddd7cc]"/>
+            <h2 className="text-[18px] font-semibold text-[#24211d] mb-4">Editar inversión</h2>
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {TIPOS.map(t => (
+                  <button key={t.id} onClick={() => setEditForm(p=>({...p,type:t.id}))}
+                    className={`rounded-full px-3 py-1.5 text-[12px] font-bold transition-all ${editForm.type===t.id?'text-white':'border border-[#e5dfd5] text-[#47433d]'}`}
+                    style={editForm.type===t.id?{background:t.color}:{}}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              <input type="text" placeholder="Nombre / Entidad" value={editForm.name}
+                onChange={e=>setEditForm(p=>({...p,name:e.target.value}))}
+                className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+              <div className="grid grid-cols-2 gap-3">
+                <input type="number" placeholder="Monto (S/)" value={editForm.amount}
+                  onChange={e=>setEditForm(p=>({...p,amount:e.target.value}))}
+                  className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+                <input type="number" placeholder="Rendimiento % anual" value={editForm.yield_percent}
+                  onChange={e=>setEditForm(p=>({...p,yield_percent:e.target.value}))}
+                  className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[12px] text-[#726d62] mb-1">Fecha inicio</p>
+                  <input type="date" value={editForm.start_date} onChange={e=>setEditForm(p=>({...p,start_date:e.target.value}))}
+                    className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+                </div>
+                <div>
+                  <p className="text-[12px] text-[#726d62] mb-1">Vencimiento (opcional)</p>
+                  <input type="date" value={editForm.end_date} onChange={e=>setEditForm(p=>({...p,end_date:e.target.value}))}
+                    className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
+                </div>
+              </div>
+              <textarea placeholder="Notas (opcional)" value={editForm.notes}
+                onChange={e=>setEditForm(p=>({...p,notes:e.target.value}))}
+                rows={2} className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff] resize-none"/>
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => setEditando(null)}
+                  className="rounded-[18px] border border-[#e2decb] py-3 text-[14px] text-[#8c887d]">Cancelar</button>
+                <button onClick={guardarEdicion} disabled={guardando||!editForm.name||!editForm.amount}
+                  className="rounded-[18px] bg-[#5a4bc3] py-3 text-[14px] font-bold text-white disabled:opacity-40">
+                  {guardando?'Guardando...':'Guardar cambios'}
+                </button>
+              </div>
+            </div>
           </div>
-          <div>
-            <p className="text-[12px] text-[#726d62] mb-1">Vencimiento (opcional)</p>
-            <input type="date" value={editForm.end_date}
-              onChange={e=>setEditForm(p=>({...p,end_date:e.target.value}))}
-              className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff]"/>
-          </div>
         </div>
-        <textarea placeholder="Notas (opcional)" value={editForm.notes}
-          onChange={e=>setEditForm(p=>({...p,notes:e.target.value}))}
-          rows={2}
-          className="w-full rounded-[18px] border border-[#e5dfd5] bg-[#f7f4ed] px-4 py-3 outline-none focus:border-[#cfc6ff] resize-none"/>
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => setEditando(null)}
-            className="rounded-[18px] border border-[#e2decb] py-3 text-[14px] text-[#8c887d]">
-            Cancelar
-          </button>
-          <button onClick={guardarEdicion} disabled={guardando||!editForm.name||!editForm.amount}
-            className="rounded-[18px] bg-[#5a4bc3] py-3 text-[14px] font-bold text-white disabled:opacity-40">
-            {guardando?'Guardando...':'Guardar cambios'}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
-      {/* Navbar */}
+      )}
+
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#ece8df]">
         <div className="max-w-md mx-auto flex">
           {[
@@ -547,24 +486,10 @@ const guardarEdicion = async () => {
       <Link href="/ia" className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-[#5a4bc3] flex items-center justify-center shadow-lg">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       </Link>
-      <TourGuide
-        tourKey="inversiones"
-        steps={[
-          {
-            target: 'total-invertido',
-            title: '💼 Tu portafolio',
-            message: 'Aquí ves el total que tienes invertido y cuánto estás ganando en promedio.',
-            position: 'bottom'
-          },
-          {
-            target: 'proyeccion',
-            title: '📈 Proyección futura',
-            message: 'Mira cuánto crecerá tu dinero en 1, 5 y 10 años según tu rendimiento actual.',
-            position: 'bottom'
-          }
-        ]}
-      />
+
+      <TourGuide tourKey="inversiones" steps={[
+        { target: 'agregar-inversion', title: '💼 Agrega tu primera inversión', message: 'Registra fondos mutuos, depósitos o ETFs y Finti calculará tu rendimiento automáticamente.', position: 'top' }
+      ]}/>
     </div>
   )
 }
-
