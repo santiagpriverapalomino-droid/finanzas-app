@@ -1,50 +1,56 @@
 import { NextResponse } from 'next/server'
 
-const NOTICIAS_FINANCIERAS = [
-  {
-    fuente: 'SBS Perú',
-    titulo: 'Fondos mutuos en Perú: rendimiento promedio de 6.8% en lo que va del año',
-    url: 'https://www.sbs.gob.pe',
-    tiempo: 'Hoy',
-    tipo: 'fondo_mutuo'
-  },
-  {
-    fuente: 'BVL',
-    titulo: 'Índice General de la Bolsa de Valores de Lima sube 2.3% impulsado por mineras',
-    url: 'https://www.bvl.com.pe',
-    tiempo: 'Hoy',
-    tipo: 'acciones'
-  },
-  {
-    fuente: 'Bloomberg',
-    titulo: 'S&P 500 alcanza nuevos máximos: ¿es momento de invertir en ETFs desde Perú?',
-    url: 'https://www.bloomberg.com',
-    tiempo: 'Ayer',
-    tipo: 'acciones'
-  },
-  {
-    fuente: 'Gestión',
-    titulo: 'Depósitos a plazo en soles: bancos peruanos ofrecen hasta 6% anual en 2026',
-    url: 'https://gestion.pe',
-    tiempo: 'Ayer',
-    tipo: 'deposito_plazo'
-  },
-  {
-    fuente: 'CoinDesk',
-    titulo: 'Bitcoin supera los $64,000: expertos recomiendan no superar el 10% del portafolio',
-    url: 'https://www.coindesk.com',
-    tiempo: 'Hace 2 días',
-    tipo: 'cripto'
-  },
-  {
-    fuente: 'Credicorp',
-    titulo: 'Atlantic Senior: el fondo mutuo conservador con mejor rendimiento del trimestre en Perú',
-    url: 'https://www.credicorpcapital.com',
-    tiempo: 'Hace 2 días',
-    tipo: 'fondo_mutuo'
-  },
-]
-
 export async function GET() {
-  return NextResponse.json({ ok: true, data: NOTICIAS_FINANCIERAS })
+  try {
+    const queries = [
+      'inversiones+peru',
+      'bolsa+valores+lima',
+      'fondos+mutuos+peru',
+      'bitcoin+finanzas',
+    ]
+
+    const allNoticias: any[] = []
+
+    for (const q of queries) {
+      const res = await fetch(
+        `https://news.google.com/rss/search?q=${q}&hl=es-419&gl=PE&ceid=PE:es-419`,
+        { cache: 'no-store' }
+      )
+      const text = await res.text()
+
+      // Parsear XML manualmente
+      const items = text.match(/<item>([\s\S]*?)<\/item>/g) || []
+      items.slice(0, 2).forEach(item => {
+        const titulo = item.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim()
+        const url = item.match(/<link>([\s\S]*?)<\/link>/)?.[1]?.trim()
+        const fuente = item.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim()
+        const pubDate = item.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim()
+
+        if (titulo && url) {
+          const fecha = pubDate ? new Date(pubDate) : new Date()
+          const ahora = new Date()
+          const diffHoras = Math.round((ahora.getTime() - fecha.getTime()) / (1000 * 60 * 60))
+          const tiempo = diffHoras < 1 ? 'Hace menos de 1h'
+            : diffHoras < 24 ? `Hace ${diffHoras}h`
+            : `Hace ${Math.round(diffHoras/24)} días`
+
+          allNoticias.push({
+            fuente: fuente || 'Google News',
+            titulo,
+            url,
+            tiempo,
+          })
+        }
+      })
+    }
+
+    // Eliminar duplicados por título
+    const unicas = allNoticias.filter((n, i, arr) =>
+      arr.findIndex(x => x.titulo === n.titulo) === i
+    )
+
+    return NextResponse.json({ ok: true, data: unicas.slice(0, 6) })
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: String(error) }, { status: 500 })
+  }
 }
