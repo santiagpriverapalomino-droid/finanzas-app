@@ -21,7 +21,7 @@ export async function GET() {
       // Parsear XML manualmente
       const items = text.match(/<item>([\s\S]*?)<\/item>/g) || []
       items.slice(0, 2).forEach(item => {
-        const titulo = item.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim()
+        const titulo = item.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').replace(/\s*-\s*[^-]+$/, '').trim()
         const url = item.match(/<link>([\s\S]*?)<\/link>/)?.[1]?.trim()
         const fuente = item.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim()
         const pubDate = item.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim()
