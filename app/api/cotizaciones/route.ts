@@ -21,7 +21,7 @@ export async function GET(req: Request) {
       simbolos.map(async (s: any) => {
         try {
           const quote = await yahooFinance.quote(s.symbol)
-          console.log(s.symbol, (quote as any).regularMarketPrice)
+console.log(s.symbol, JSON.stringify(quote).slice(0, 200))
           const cambio = (quote as any).regularMarketChangePercent || 0
 const precio = (quote as any).regularMarketPrice || (quote as any).postMarketPrice || (quote as any).preMarketPrice || 0
 const moneda = (quote as any).currency || 'USD'
