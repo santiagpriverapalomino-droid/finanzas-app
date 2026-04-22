@@ -3,13 +3,13 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   try {
     const res = await fetch(
-      `https://newsapi.org/v2/everything?q=inversiones+finanzas+peru+bolsa+bitcoin+ETF&language=es&sortBy=publishedAt&pageSize=6&apiKey=${process.env.NEWS_API_KEY}`,
-      { next: { revalidate: 3600 } } // cache 1 hora
+      `https://gnews.io/api/v4/search?q=inversiones+finanzas+bolsa+bitcoin&lang=es&country=pe&max=6&apikey=${process.env.GNEWS_API_KEY}`,
+      { next: { revalidate: 3600 } }
     )
     const data = await res.json()
 
-    if (data.status !== 'ok') {
-      return NextResponse.json({ ok: false, error: data.message }, { status: 500 })
+    if (!data.articles) {
+      return NextResponse.json({ ok: false, error: 'Sin artículos' }, { status: 500 })
     }
 
     const noticias = data.articles.map((a: any) => ({
