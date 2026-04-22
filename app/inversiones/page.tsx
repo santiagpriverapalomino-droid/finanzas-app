@@ -74,7 +74,13 @@ const [simbolosGuardados, setSimbolosGuardados] = useState([
       setInvestments(inv || [])
       setLoading(false)
       // Cargar cotizaciones
-const cargarCotizaciones = async (simbolos = simbolosGuardados) => {
+const simbolosIniciales = [
+  { symbol: 'SPY', nombre: 'S&P 500', sub: 'ETF · USD' },
+  { symbol: 'BTC', nombre: 'Bitcoin', sub: 'Cripto · USD', cripto: true },
+  { symbol: 'GLD', nombre: 'Oro', sub: 'ETF · USD' },
+  { symbol: 'USD', nombre: 'USD/PEN', sub: 'Tipo de cambio', fx: true },
+]
+const cargarCotizaciones = async (simbolos = simbolosIniciales) => {
   setCargandoCot(true)
   try {
     const res = await fetch(`/api/cotizaciones?symbols=${encodeURIComponent(JSON.stringify(simbolos))}`)
@@ -83,7 +89,7 @@ const cargarCotizaciones = async (simbolos = simbolosGuardados) => {
   } catch {}
   setCargandoCot(false)
 }
-cargarCotizaciones()
+cargarCotizaciones(simbolosIniciales)
 // Cargar noticias
 const cargarNoticias = async () => {
   setCargandoNoticias(true)
