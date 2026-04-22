@@ -40,12 +40,17 @@ export default function Inversiones() {
   const [editando, setEditando] = useState<Investment | null>(null)
   const [editForm, setEditForm] = useState({ type: 'fondo_mutuo', name: '', amount: '', yield_percent: '', start_date: '', end_date: '', notes: '' })
   const [form, setForm] = useState({ type: 'fondo_mutuo', name: '', amount: '', yield_percent: '', start_date: todayStr(), end_date: '', notes: '' })
-  const [cotizaciones, setCotizaciones] = useState([
-    { nombre: 'S&P 500', sub: 'ETF · USD', precio: '$5,842', cambio: '+0.82%', positivo: true },
-    { nombre: 'Bitcoin', sub: 'Cripto · USD', precio: '$64,210', cambio: '+2.1%', positivo: true },
-    { nombre: 'BVL General', sub: 'Índice · PEN', precio: 'S/21,340', cambio: '-0.3%', positivo: false },
-    { nombre: 'Oro', sub: 'Commodity · USD', precio: '$2,318', cambio: '+0.5%', positivo: true },
-  ])
+  const [cotizaciones, setCotizaciones] = useState<any[]>([])
+const [cargandoCot, setCargandoCot] = useState(true)
+const [montoSim, setMontoSim] = useState('')
+const [agregandoCot, setAgregandoCot] = useState(false)
+const [nuevaCot, setNuevaCot] = useState({ symbol: '', nombre: '', sub: '' })
+const [simbolosGuardados, setSimbolosGuardados] = useState([
+  { symbol: 'SPY', nombre: 'S&P 500', sub: 'ETF · USD' },
+  { symbol: 'BTC-USD', nombre: 'Bitcoin', sub: 'Cripto · USD' },
+  { symbol: 'GC=F', nombre: 'Oro', sub: 'Commodity · USD' },
+  { symbol: 'PEN=X', nombre: 'USD/PEN', sub: 'Tipo de cambio' },
+])
 
   const [dist, setDist] = useState([
     { label: 'Fondos mutuos', pct: 40, color: '#5b4bc4' },
@@ -66,6 +71,17 @@ export default function Inversiones() {
       const { data: inv } = await supabase.from('investments').select('*').eq('user_id', user.id).order('created_at')
       setInvestments(inv || [])
       setLoading(false)
+      // Cargar cotizaciones
+const cargarCotizaciones = async (simbolos = simbolosGuardados) => {
+  setCargandoCot(true)
+  try {
+    const res = await fetch(`/api/cotizaciones?symbols=${encodeURIComponent(JSON.stringify(simbolos))}`)
+    const json = await res.json()
+    if (json.ok) setCotizaciones(json.data)
+  } catch {}
+  setCargandoCot(false)
+}
+cargarCotizaciones()
     }
     init()
   }, [])
@@ -143,7 +159,7 @@ export default function Inversiones() {
   const riesgos: Record<string, number> = { 'Fondos mutuos': 2, 'Depósito a plazo': 1, 'Acciones / ETFs': 3.5, 'Cripto (máx.)': 5 }
   const rendPonderado = dist.reduce((s, d) => s + (d.pct / 100) * (rendimientos[d.label] || 5), 0)
   const riesgoPonderado = dist.reduce((s, d) => s + (d.pct / 100) * (riesgos[d.label] || 2), 0)
-  const base = totalInvertido || 1000
+  const base = montoSim ? parseFloat(montoSim) : totalInvertido || 1000
   const y1 = base * Math.pow(1 + rendPonderado / 100, 1)
   const y5 = base * Math.pow(1 + rendPonderado / 100, 5)
   const y10 = base * Math.pow(1 + rendPonderado / 100, 10)
@@ -197,8 +213,15 @@ export default function Inversiones() {
               {totalDist}% {totalDist === 100 ? '✓' : '⚠️'}
             </div>
           </div>
-          <p className="text-[12px] text-[#8c887d] mb-3">Mueve los sliders y ve el impacto en tiempo real</p>
-
+<p className="text-[12px] text-[#8c887d] mb-2">Mueve los sliders y ve el impacto en tiempo real</p>
+<div className="flex items-center gap-2 mb-3 rounded-[14px] bg-[#f5f3ee] border border-[#ebe6db] px-3 py-2">
+  <span className="text-[13px] text-[#726d62] font-bold">Simular con</span>
+  <input type="number" placeholder={totalInvertido > 0 ? String(totalInvertido) : '1000'}
+    value={montoSim}
+    onChange={e => setMontoSim(e.target.value)}
+    className="flex-1 bg-transparent text-[14px] font-bold text-[#5a4bc3] outline-none text-right"/>
+  <span className="text-[13px] text-[#726d62] font-bold">S/</span>
+</div>
           {dist.map((d, i) => (
             <div key={d.label} className="mb-3">
               <div className="flex items-center justify-between mb-1">
@@ -253,30 +276,77 @@ export default function Inversiones() {
         </div>
 
         {/* 3. Cotizaciones en tiempo real */}
-        <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d]">Cotizaciones</p>
-            <div className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e]"/>
-              <span className="text-[11px] text-[#22c55e] font-bold">En vivo</span>
-            </div>
-          </div>
-          {cotizaciones.map((c, i) => (
-            <div key={i} className={`flex items-center justify-between py-2.5 ${i < cotizaciones.length-1 ? 'border-b border-[#f0ebe0]' : ''}`}>
-              <div>
-                <p className="text-[14px] font-semibold text-[#1f1f1f]">{c.nombre}</p>
-                <p className="text-[11px] text-[#8c887d]">{c.sub}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[14px] font-bold text-[#1f1f1f]">{c.precio}</p>
-                <p className={`text-[12px] font-bold ${c.positivo ? 'text-[#22c55e]' : 'text-[#b24f58]'}`}>
-                  {c.positivo ? '▲' : '▼'} {c.cambio}
-                </p>
-              </div>
-            </div>
-          ))}
-          <p className="text-[10px] text-[#8c887d] mt-2 text-center">Precios referenciales. Actualizado cada hora.</p>
+<div className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
+  <div className="flex items-center justify-between mb-3">
+    <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d]">Cotizaciones</p>
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
+        <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e]"/>
+        <span className="text-[11px] text-[#22c55e] font-bold">En vivo</span>
+      </div>
+      <button onClick={() => setAgregandoCot(!agregandoCot)}
+        className="text-[11px] font-bold text-[#5a4bc3] bg-[#ede9ff] px-2 py-1 rounded-full">
+        + Agregar
+      </button>
+    </div>
+  </div>
+
+  {agregandoCot && (
+    <div className="rounded-[16px] bg-[#f5f3ee] border border-[#ebe6db] p-3 mb-3 space-y-2">
+      <p className="text-[12px] text-[#8c887d]">Ej: AAPL = Apple, MSFT = Microsoft, ETH-USD = Ethereum</p>
+      <input type="text" placeholder="Símbolo (ej: AAPL)" value={nuevaCot.symbol}
+        onChange={e => setNuevaCot(p => ({...p, symbol: e.target.value.toUpperCase()}))}
+        className="w-full rounded-[12px] border border-[#e5dfd5] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#5a4bc3]"/>
+      <input type="text" placeholder="Nombre (ej: Apple)" value={nuevaCot.nombre}
+        onChange={e => setNuevaCot(p => ({...p, nombre: e.target.value}))}
+        className="w-full rounded-[12px] border border-[#e5dfd5] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#5a4bc3]"/>
+      <input type="text" placeholder="Descripción (ej: Acción · USD)" value={nuevaCot.sub}
+        onChange={e => setNuevaCot(p => ({...p, sub: e.target.value}))}
+        className="w-full rounded-[12px] border border-[#e5dfd5] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#5a4bc3]"/>
+      <button onClick={async () => {
+        if (!nuevaCot.symbol || !nuevaCot.nombre) return
+        const nuevos = [...simbolosGuardados, nuevaCot]
+        setSimbolosGuardados(nuevos)
+        setNuevaCot({ symbol: '', nombre: '', sub: '' })
+        setAgregandoCot(false)
+        const res = await fetch(`/api/cotizaciones?symbols=${encodeURIComponent(JSON.stringify(nuevos))}`)
+        const json = await res.json()
+        if (json.ok) setCotizaciones(json.data)
+      }} className="w-full rounded-[12px] bg-[#5a4bc3] py-2 text-[13px] font-bold text-white">
+        Agregar cotización
+      </button>
+    </div>
+  )}
+
+  {cargandoCot ? (
+    <div className="py-4 text-center">
+      <p className="text-[13px] text-[#8c887d]">Cargando precios...</p>
+    </div>
+  ) : cotizaciones.map((c, i) => (
+    <div key={i} className={`flex items-center justify-between py-2.5 ${i < cotizaciones.length-1 ? 'border-b border-[#f0ebe0]' : ''}`}>
+      <div>
+        <p className="text-[14px] font-semibold text-[#1f1f1f]">{c.nombre}</p>
+        <p className="text-[11px] text-[#8c887d]">{c.sub}</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="text-right">
+          <p className="text-[14px] font-bold text-[#1f1f1f]">{c.precio}</p>
+          <p className={`text-[12px] font-bold ${c.positivo ? 'text-[#22c55e]' : 'text-[#b24f58]'}`}>
+            {c.positivo ? '▲' : '▼'} {c.cambio}
+          </p>
         </div>
+        <button onClick={() => {
+          const nuevos = simbolosGuardados.filter(s => s.symbol !== c.symbol)
+          setSimbolosGuardados(nuevos)
+          setCotizaciones(prev => prev.filter(p => p.symbol !== c.symbol))
+        }} className="w-6 h-6 rounded-full flex items-center justify-center text-[#9b968d] hover:text-[#b24f58]">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  ))}
+  <p className="text-[10px] text-[#8c887d] mt-2 text-center">Precios de Yahoo Finance. Actualizado cada hora.</p>
+</div>
 
         {/* 4. Noticias financieras */}
         <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
