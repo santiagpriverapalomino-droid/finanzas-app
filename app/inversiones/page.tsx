@@ -45,6 +45,8 @@ const [cargandoCot, setCargandoCot] = useState(true)
 const [montoSim, setMontoSim] = useState('')
 const [agregandoCot, setAgregandoCot] = useState(false)
 const [nuevaCot, setNuevaCot] = useState({ symbol: '', nombre: '', sub: '' })
+const [noticias, setNoticias] = useState<any[]>([])
+const [cargandoNoticias, setCargandoNoticias] = useState(true)
 const [simbolosGuardados, setSimbolosGuardados] = useState([
   { symbol: 'SPY', nombre: 'S&P 500', sub: 'ETF · USD' },
   { symbol: 'BTC-USD', nombre: 'Bitcoin', sub: 'Cripto · USD' },
@@ -82,6 +84,17 @@ const cargarCotizaciones = async (simbolos = simbolosGuardados) => {
   setCargandoCot(false)
 }
 cargarCotizaciones()
+// Cargar noticias
+const cargarNoticias = async () => {
+  setCargandoNoticias(true)
+  try {
+    const res = await fetch('/api/noticias')
+    const json = await res.json()
+    if (json.ok) setNoticias(json.data)
+  } catch {}
+  setCargandoNoticias(false)
+}
+cargarNoticias()
     }
     init()
   }, [])
@@ -348,19 +361,39 @@ cargarCotizaciones()
   <p className="text-[10px] text-[#8c887d] mt-2 text-center">Precios de Yahoo Finance. Actualizado cada hora.</p>
 </div>
 
-        {/* 4. Noticias financieras */}
-        <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d]">Noticias para ti</p>
-            <span className="text-[11px] text-[#5a4bc3] font-bold">Hoy</span>
-          </div>
-          {noticiasFiltradas.map((n, i) => (
-            <div key={i} className={`py-2.5 ${i < noticiasFiltradas.length-1 ? 'border-b border-[#f0ebe0]' : ''}`}>
-              <p className="text-[10px] font-bold text-[#8c887d] uppercase">{n.fuente} · {n.tiempo}</p>
-              <p className="text-[13px] text-[#1f1f1f] font-medium leading-tight mt-1">{n.titulo}</p>
-            </div>
-          ))}
+       {/* 4. Noticias financieras */}
+<div className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
+  <div className="flex items-center justify-between mb-3">
+    <p className="text-[13px] font-bold uppercase tracking-wide text-[#47433d]">Noticias para ti</p>
+    <span className="text-[11px] text-[#8c887d]">Actualizado hace 1h</span>
+  </div>
+  {cargandoNoticias ? (
+    <p className="text-[13px] text-[#8c887d] text-center py-4">Cargando noticias...</p>
+  ) : noticias.length === 0 ? (
+    <p className="text-[13px] text-[#8c887d] text-center py-4">Sin noticias disponibles</p>
+  ) : noticias.map((n, i) => (
+    <div key={i} className={`py-2.5 ${i < noticias.length-1 ? 'border-b border-[#f0ebe0]' : ''}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1">
+          <p className="text-[10px] font-bold text-[#8c887d] uppercase">{n.fuente} · {n.tiempo}</p>
+          <p className="text-[13px] text-[#1f1f1f] font-medium leading-tight mt-1">{n.titulo}</p>
         </div>
+      </div>
+      <div className="flex items-center gap-2 mt-2">
+        {n.url && (
+          <a href={n.url} target="_blank" rel="noopener noreferrer"
+            className="text-[11px] font-bold text-[#5a4bc3]">
+            Leer más →
+          </a>
+        )}
+        <button onClick={() => router.push(`/ia?q=${encodeURIComponent('Explícame esta noticia: ' + n.titulo)}`)}
+          className="text-[11px] font-bold text-[#8c887d] bg-[#f5f3ee] px-2 py-0.5 rounded-full">
+          Preguntar a IA ✨
+        </button>
+      </div>
+    </div>
+  ))}
+</div>
 
         {/* 5. Alertas */}
         {alertas.length > 0 && (
