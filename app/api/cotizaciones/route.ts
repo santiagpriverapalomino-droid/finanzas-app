@@ -23,7 +23,7 @@ export async function GET(req: Request) {
           const quote = await yahooFinance.quote(s.symbol)
           console.log(s.symbol, (quote as any).regularMarketPrice)
           const cambio = (quote as any).regularMarketChangePercent || 0
-const precio = (quote as any).regularMarketPrice || 0
+const precio = (quote as any).regularMarketPrice || (quote as any).postMarketPrice || (quote as any).preMarketPrice || 0
 const moneda = (quote as any).currency || 'USD'
           const prefijo = moneda === 'USD' ? '$' : moneda === 'PEN' ? 'S/' : ''
           return {
