@@ -48,10 +48,10 @@ const [nuevaCot, setNuevaCot] = useState({ symbol: '', nombre: '', sub: '' })
 const [noticias, setNoticias] = useState<any[]>([])
 const [cargandoNoticias, setCargandoNoticias] = useState(true)
 const [simbolosGuardados, setSimbolosGuardados] = useState([
-  { symbol: 'SPY', nombre: 'S&P 500', sub: 'ETF · USD' },
-  { symbol: 'BTC-USD', nombre: 'Bitcoin', sub: 'Cripto · USD' },
-  { symbol: 'GC=F', nombre: 'Oro', sub: 'Commodity · USD' },
-  { symbol: 'PEN=X', nombre: 'USD/PEN', sub: 'Tipo de cambio' },
+  { symbol: '^GSPC', nombre: 'S&P 500', sub: 'Índice · USD' },
+  { symbol: 'BTC', nombre: 'Bitcoin', sub: 'Cripto · USD', cripto: true },
+  { symbol: 'GLD', nombre: 'Oro', sub: 'ETF · USD' },
+  { symbol: 'USD', nombre: 'USD/PEN', sub: 'Tipo de cambio', fx: true },
 ])
 
   const [dist, setDist] = useState([
@@ -75,7 +75,7 @@ const [simbolosGuardados, setSimbolosGuardados] = useState([
       setLoading(false)
       // Cargar cotizaciones
 const simbolosIniciales = [
-  { symbol: 'SPY', nombre: 'S&P 500', sub: 'ETF · USD' },
+  { symbol: '^GSPC', nombre: 'S&P 500', sub: 'Índice · USD' },
   { symbol: 'BTC', nombre: 'Bitcoin', sub: 'Cripto · USD', cripto: true },
   { symbol: 'GLD', nombre: 'Oro', sub: 'ETF · USD' },
   { symbol: 'USD', nombre: 'USD/PEN', sub: 'Tipo de cambio', fx: true },
@@ -322,16 +322,15 @@ cargarNoticias()
       <input type="text" placeholder="Descripción (ej: Acción · USD)" value={nuevaCot.sub}
         onChange={e => setNuevaCot(p => ({...p, sub: e.target.value}))}
         className="w-full rounded-[12px] border border-[#e5dfd5] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#5a4bc3]"/>
-      <button onClick={async () => {
-        if (!nuevaCot.symbol || !nuevaCot.nombre) return
-        const nuevos = [...simbolosGuardados, nuevaCot]
-        setSimbolosGuardados(nuevos)
-        setNuevaCot({ symbol: '', nombre: '', sub: '' })
-        setAgregandoCot(false)
-        const res = await fetch(`/api/cotizaciones?symbols=${encodeURIComponent(JSON.stringify(nuevos))}`)
-        const json = await res.json()
-        if (json.ok) setCotizaciones(json.data)
-      }} className="w-full rounded-[12px] bg-[#5a4bc3] py-2 text-[13px] font-bold text-white">
+<button onClick={async () => {  if (!nuevaCot.symbol || !nuevaCot.nombre) return
+  const nuevos = [...simbolosGuardados, nuevaCot]
+  setSimbolosGuardados(nuevos)
+  setNuevaCot({ symbol: '', nombre: '', sub: '' })
+  setAgregandoCot(false)
+  const res = await fetch(`/api/cotizaciones?symbols=${encodeURIComponent(JSON.stringify([nuevaCot]))}`)
+  const json = await res.json()
+  if (json.ok) setCotizaciones(prev => [...prev, ...json.data])
+}} className="w-full rounded-[12px] bg-[#5a4bc3] py-2 text-[13px] font-bold text-white">
         Agregar cotización
       </button>
     </div>

@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 const SIMBOLOS_DEFAULT = [
-  { symbol: 'SPY', nombre: 'S&P 500', sub: 'ETF · USD' },
+  { symbol: '^GSPC', nombre: 'S&P 500', sub: 'Índice · USD' },
   { symbol: 'BTC', nombre: 'Bitcoin', sub: 'Cripto · USD', cripto: true },
   { symbol: 'GLD', nombre: 'Oro', sub: 'ETF · USD' },
   { symbol: 'USD', nombre: 'USD/PEN', sub: 'Tipo de cambio', fx: true },
