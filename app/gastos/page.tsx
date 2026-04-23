@@ -605,7 +605,33 @@ const guardarEdicion = async () => {
           </div>
         )}
       </div>
-
+{/* Botón conectar Gmail banco */}
+<button onClick={async () => {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+  const { data: prof } = await supabase.from('profiles').select('gmail_connected').eq('id', user.id).single()
+  if (prof?.gmail_connected) {
+    // Ya conectado — sincronizar
+    const res = await fetch('/api/gmail/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id })
+    })
+    const json = await res.json()
+    if (json.ok) {
+      alert(`✅ Se importaron ${json.insertados} gastos nuevos de tu banco`)
+      window.location.reload()
+    } else {
+      alert('❌ Error al sincronizar: ' + json.error)
+    }
+  } else {
+    // No conectado — redirigir a OAuth
+    window.location.href = '/api/gmail'
+  }
+}}
+className="fixed bottom-24 left-4 w-14 h-14 rounded-full bg-white border-2 border-[#5a4bc3] flex items-center justify-center shadow-lg z-40">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5a4bc3" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+</button>
       <button data-tour="agregar" onClick={() => filter==='fixed' ? setIsAddingFixed(true) : setIsAdding(true)}
         className="fixed bottom-24 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-[#5a4bc3] text-white flex items-center justify-center shadow-lg">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
