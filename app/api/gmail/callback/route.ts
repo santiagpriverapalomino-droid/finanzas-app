@@ -1,16 +1,21 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '../../../../lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
+  const userId = searchParams.get('state')
 
-  if (!code) {
+  if (!code || !userId) {
     return NextResponse.redirect('https://usefinti.app/gastos?error=gmail')
   }
 
   try {
-    // Intercambiar código por tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -29,16 +34,11 @@ export async function GET(req: Request) {
       return NextResponse.redirect('https://usefinti.app/gastos?error=gmail')
     }
 
-    // Guardar tokens en Supabase
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (user) {
-      await supabase.from('profiles').update({
-        gmail_access_token: tokens.access_token,
-        gmail_refresh_token: tokens.refresh_token,
-        gmail_connected: true,
-      }).eq('id', user.id)
-    }
+    await supabaseAdmin.from('profiles').update({
+      gmail_access_token: tokens.access_token,
+      gmail_refresh_token: tokens.refresh_token,
+      gmail_connected: true,
+    }).eq('id', userId)
 
     return NextResponse.redirect('https://usefinti.app/gastos?gmail=connected')
   } catch {

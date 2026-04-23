@@ -626,7 +626,7 @@ const guardarEdicion = async () => {
     }
   } else {
     // No conectado — redirigir a OAuth
-    window.location.href = '/api/gmail'
+    window.location.href = `/api/gmail?userId=${user.id}`
   }
 }}
 className="fixed bottom-24 left-4 w-14 h-14 rounded-full bg-white border-2 border-[#5a4bc3] flex items-center justify-center shadow-lg z-40">

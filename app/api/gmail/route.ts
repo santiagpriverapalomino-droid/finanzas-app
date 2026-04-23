@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const userId = searchParams.get('userId')
+  
   const clientId = process.env.GOOGLE_CLIENT_ID
   const redirectUri = 'https://usefinti.app/api/gmail/callback'
   
@@ -14,7 +17,8 @@ export async function GET() {
     `response_type=code&` +
     `scope=${encodeURIComponent(scopes)}&` +
     `access_type=offline&` +
-    `prompt=consent`
+    `prompt=consent&` +
+    `state=${userId}`
 
   return NextResponse.redirect(authUrl)
 }
