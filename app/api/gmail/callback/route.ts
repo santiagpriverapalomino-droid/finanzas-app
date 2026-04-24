@@ -40,8 +40,7 @@ export async function GET(req: Request) {
       gmail_connected: true,
     }).eq('id', userId)
 
-    return NextResponse.redirect('https://usefinti.app/gastos?gmail=connected')
-  } catch {
+    return NextResponse.redirect('https://usefinti.app/gmail-success')  } catch {
     return NextResponse.redirect('https://usefinti.app/gastos?error=gmail')
   }
 }
