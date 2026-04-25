@@ -161,7 +161,8 @@ export default function Configuracion() {
 try {
                 const permission = await Notification.requestPermission()
                 if (permission !== 'granted') { alert('Debes permitir las notificaciones para activarlas.'); return }
-                const reg = await navigator.serviceWorker.ready
+                await navigator.serviceWorker.register('/sw.js')
+const reg = await navigator.serviceWorker.ready
                 const existing = await reg.pushManager.getSubscription()
 const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
 const padding = '='.repeat((4 - vapidKey.length % 4) % 4)
