@@ -1,20 +1,20 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import Anthropic from '@anthropic-ai/sdk'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-async function refreshToken(refreshToken: string) {
+async function refreshToken(refresh_token: string) {
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      refresh_token: refreshToken,
+      refresh_token,
       client_id: process.env.GOOGLE_CLIENT_ID!,
       client_secret: process.env.GOOGLE_CLIENT_SECRET!,
       grant_type: 'refresh_token',
@@ -38,27 +38,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: 'Gmail no conectado' })
     }
 
-    // Refrescar token
     let accessToken = profile.gmail_access_token
     if (profile.gmail_refresh_token) {
       accessToken = await refreshToken(profile.gmail_refresh_token)
       await supabase.from('profiles').update({ gmail_access_token: accessToken }).eq('id', userId)
     }
-console.log('accessToken obtenido:', accessToken ? 'SI' : 'NO', '| valor:', accessToken?.slice(0,20))
-    // Buscar emails de bancos peruanos
+
     const query = encodeURIComponent('from:notificacionesbcp.com.pe')
+
     const gmailRes = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=20`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     )
     const gmailData = await gmailRes.json()
-    console.log('emails encontrados:', JSON.stringify(gmailData))
+    console.log('gmail response:', JSON.stringify(gmailData))
 
     if (!gmailData.messages || gmailData.messages.length === 0) {
-      return NextResponse.json({ ok: true, gastos: [], msg: 'No se encontraron emails de bancos' })
+      return NextResponse.json({ ok: true, gastos: [], insertados: 0, msg: 'No se encontraron emails de bancos' })
     }
 
-    const gastos = []
+    const gastos: any[] = []
 
     for (const msg of gmailData.messages.slice(0, 10)) {
       const msgRes = await fetch(
@@ -67,7 +66,6 @@ console.log('accessToken obtenido:', accessToken ? 'SI' : 'NO', '| valor:', acce
       )
       const msgData = await msgRes.json()
 
-      // Extraer texto del email
       let body = ''
       const parts = msgData.payload?.parts || [msgData.payload]
       for (const part of parts) {
@@ -79,8 +77,7 @@ console.log('accessToken obtenido:', accessToken ? 'SI' : 'NO', '| valor:', acce
       const subject = msgData.payload?.headers?.find((h: any) => h.name === 'Subject')?.value || ''
       const date = msgData.payload?.headers?.find((h: any) => h.name === 'Date')?.value || ''
 
-      // Usar IA para extraer el gasto
-      const prompt = `Analiza este email de un banco peruano y extrae la información del gasto.
+      const prompt = `Analiza este email del BCP peruano y extrae la información del gasto.
       
 Asunto: ${subject}
 Fecha: ${date}
@@ -92,7 +89,7 @@ Responde SOLO con un JSON con este formato exacto (sin texto adicional):
   "monto": 0.00,
   "moneda": "PEN" o "USD",
   "descripcion": "nombre del comercio o descripción",
-  "categoria": "comida" | "transporte" | "entretenimiento" | "salud" | "educacion" | "ropa" | "servicios" | "otro",
+  "categoria": "Alimentación" | "Transporte" | "Entretenimiento" | "Compras" | "Servicios",
   "fecha": "YYYY-MM-DD"
 }
 
@@ -106,9 +103,8 @@ Si no es un gasto o no puedes extraer la información, pon es_gasto: false.`
 
       try {
         const text = response.content[0].type === 'text' ? response.content[0].text : ''
-          console.log('IA respuesta:', text)
+        console.log('IA respuesta:', text)
         const gasto = JSON.parse(text.trim())
-        
         if (gasto.es_gasto && gasto.monto > 0) {
           gastos.push(gasto)
         }
@@ -117,7 +113,6 @@ Si no es un gasto o no puedes extraer la información, pon es_gasto: false.`
       }
     }
 
-    // Insertar gastos en Supabase (evitar duplicados por fecha y monto)
     let insertados = 0
     for (const gasto of gastos) {
       const { data: existing } = await supabase
@@ -142,7 +137,8 @@ Si no es un gasto o no puedes extraer la información, pon es_gasto: false.`
       }
     }
 
-return NextResponse.json({ ok: true, gastos: gastos.length, insertados, debug_gastos: gastos })  } catch (error) {
+    return NextResponse.json({ ok: true, gastos: gastos.length, insertados })
+  } catch (error) {
     return NextResponse.json({ ok: false, error: String(error) }, { status: 500 })
   }
 }
