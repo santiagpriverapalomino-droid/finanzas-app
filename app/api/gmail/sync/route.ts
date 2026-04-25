@@ -43,7 +43,7 @@ export async function POST(req: Request) {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('gmail_access_token, gmail_refresh_token, gmail_connected')
+      .select('gmail_access_token, gmail_refresh_token, gmail_connected, gmail_first_sync_done')
       .eq('id', userId)
       .single()
 
@@ -57,10 +57,12 @@ export async function POST(req: Request) {
       await supabase.from('profiles').update({ gmail_access_token: accessToken }).eq('id', userId)
     }
 
-    const query = encodeURIComponent('from:notificacionesbcp.com.pe')
+    const isFirstSync = !profile.gmail_first_sync_done
+const maxEmails = isFirstSync ? 100 : 10
+const query = encodeURIComponent('from:notificacionesbcp.com.pe')
 
     const gmailRes = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=20`,
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=${maxEmails}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     )
     const gmailData = await gmailRes.json()
@@ -71,7 +73,7 @@ export async function POST(req: Request) {
 
     const gastos: any[] = []
 
-    for (const msg of gmailData.messages.slice(0, 10)) {
+    for (const msg of gmailData.messages.slice(0, maxEmails)) {
       const msgRes = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -156,7 +158,9 @@ const gasto = JSON.parse(clean)
         insertados++
       }
     }
-
+if (isFirstSync) {
+  await supabase.from('profiles').update({ gmail_first_sync_done: true }).eq('id', userId)
+}
     return NextResponse.json({ ok: true, gastos: gastos.length, insertados })
   } catch (error) {
     return NextResponse.json({ ok: false, error: String(error) }, { status: 500 })
