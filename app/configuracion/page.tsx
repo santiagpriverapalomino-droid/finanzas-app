@@ -163,9 +163,16 @@ try {
                 if (permission !== 'granted') { alert('Debes permitir las notificaciones para activarlas.'); return }
                 const reg = await navigator.serviceWorker.ready
                 const existing = await reg.pushManager.getSubscription()
-                const sub = existing || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY })
-                const res = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id, subscription: sub }) })
-                const resData = await res.json()
+const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
+const padding = '='.repeat((4 - vapidKey.length % 4) % 4)
+const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/')
+const rawData = window.atob(base64)
+const outputArray = new Uint8Array(rawData.length)
+for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i)
+const sub = existing || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: outputArray })
+                const subJson = sub.toJSON()
+                const res = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id, subscription: subJson }) })               
+                 const resData = await res.json()
 if (res.ok) setMsg('✅ Notificaciones activadas')
 else setMsg('❌ Error: ' + JSON.stringify(resData))
               } catch (err) {
