@@ -97,10 +97,6 @@ export async function POST(req: Request) {
       const body = stripHtml(rawBody).slice(0, 800)
       const subject = msgData.payload?.headers?.find((h: any) => h.name === 'Subject')?.value || ''
       const date = msgData.payload?.headers?.find((h: any) => h.name === 'Date')?.value || ''
-
-      console.log('subject:', subject)
-      console.log('body limpio:', body.slice(0, 200))
-
       const prompt = `Eres un extractor de gastos bancarios peruanos. Analiza este email del BCP.
 
 Asunto: ${subject}
@@ -127,7 +123,6 @@ Si no hay monto claro, responde: {"es_gasto": false}`
 
       try {
         const text = response.content[0].type === 'text' ? response.content[0].text : ''
-console.log('IA respuesta:', text)
 const clean = text.replace(/```json|```/g, '').trim()
 const gasto = JSON.parse(clean)
         if (gasto.es_gasto && gasto.monto > 0) {
