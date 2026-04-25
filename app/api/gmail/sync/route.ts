@@ -24,6 +24,19 @@ async function refreshToken(refresh_token: string) {
   return data.access_token
 }
 
+function stripHtml(html: string): string {
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 export async function POST(req: Request) {
   try {
     const { userId } = await req.json()
@@ -51,10 +64,9 @@ export async function POST(req: Request) {
       { headers: { Authorization: `Bearer ${accessToken}` } }
     )
     const gmailData = await gmailRes.json()
-    console.log('gmail response:', JSON.stringify(gmailData))
 
     if (!gmailData.messages || gmailData.messages.length === 0) {
-      return NextResponse.json({ ok: true, gastos: [], insertados: 0, msg: 'No se encontraron emails de bancos' })
+      return NextResponse.json({ ok: true, gastos: [], insertados: 0, msg: 'No se encontraron emails' })
     }
 
     const gastos: any[] = []
@@ -66,34 +78,46 @@ export async function POST(req: Request) {
       )
       const msgData = await msgRes.json()
 
-      let body = ''
+      let rawBody = ''
       const parts = msgData.payload?.parts || [msgData.payload]
       for (const part of parts) {
         if (part?.body?.data) {
-          body += Buffer.from(part.body.data, 'base64').toString('utf-8')
+          rawBody += Buffer.from(part.body.data, 'base64').toString('utf-8')
+        }
+        // partes anidadas
+        if (part?.parts) {
+          for (const subpart of part.parts) {
+            if (subpart?.body?.data) {
+              rawBody += Buffer.from(subpart.body.data, 'base64').toString('utf-8')
+            }
+          }
         }
       }
 
+      const body = stripHtml(rawBody).slice(0, 800)
       const subject = msgData.payload?.headers?.find((h: any) => h.name === 'Subject')?.value || ''
       const date = msgData.payload?.headers?.find((h: any) => h.name === 'Date')?.value || ''
 
-      const prompt = `Analiza este email del BCP peruano y extrae la información del gasto.
-      
+      console.log('subject:', subject)
+      console.log('body limpio:', body.slice(0, 200))
+
+      const prompt = `Eres un extractor de gastos bancarios peruanos. Analiza este email del BCP.
+
 Asunto: ${subject}
 Fecha: ${date}
-Contenido: ${body.slice(0, 1000)}
+Contenido: ${body}
 
-Responde SOLO con un JSON con este formato exacto (sin texto adicional):
+Extrae el gasto y responde SOLO con JSON, sin texto adicional:
 {
-  "es_gasto": true/false,
-  "monto": 0.00,
-  "moneda": "PEN" o "USD",
-  "descripcion": "nombre del comercio o descripción",
-  "categoria": "Alimentación" | "Transporte" | "Entretenimiento" | "Compras" | "Servicios",
-  "fecha": "YYYY-MM-DD"
+  "es_gasto": true,
+  "monto": 50.19,
+  "moneda": "PEN",
+  "descripcion": "RAPPI PERU",
+  "categoria": "Alimentación",
+  "fecha": "2024-04-23"
 }
 
-Si no es un gasto o no puedes extraer la información, pon es_gasto: false.`
+Si no hay monto claro, responde: {"es_gasto": false}`
 
       const response = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
@@ -109,7 +133,7 @@ Si no es un gasto o no puedes extraer la información, pon es_gasto: false.`
           gastos.push(gasto)
         }
       } catch {
-        // Email no procesable
+        // no procesable
       }
     }
 
