@@ -164,8 +164,9 @@ export default function Configuracion() {
                 const existing = await reg.pushManager.getSubscription()
                 const sub = existing || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY })
                 const res = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id, subscription: sub }) })
-                if (res.ok) setMsg('✅ Notificaciones activadas')
-                else setMsg('❌ Error al activar notificaciones')
+                const resData = await res.json()
+if (res.ok) setMsg('✅ Notificaciones activadas')
+else setMsg('❌ Error: ' + JSON.stringify(resData))
               }} className="text-[13px] font-bold text-white bg-[#5a4bc3] px-4 py-2 rounded-full">
                 Activar
               </button>
