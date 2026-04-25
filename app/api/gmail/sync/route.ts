@@ -142,8 +142,7 @@ Si no es un gasto o no puedes extraer la información, pon es_gasto: false.`
       }
     }
 
-    return NextResponse.json({ ok: true, gastos: gastos.length, insertados })
-  } catch (error) {
+return NextResponse.json({ ok: true, gastos: gastos.length, insertados, debug_gastos: gastos })  } catch (error) {
     return NextResponse.json({ ok: false, error: String(error) }, { status: 500 })
   }
 }
