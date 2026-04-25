@@ -106,6 +106,7 @@ Si no es un gasto o no puedes extraer la información, pon es_gasto: false.`
 
       try {
         const text = response.content[0].type === 'text' ? response.content[0].text : ''
+          console.log('IA respuesta:', text)
         const gasto = JSON.parse(text.trim())
         
         if (gasto.es_gasto && gasto.monto > 0) {
