@@ -52,6 +52,7 @@ export async function POST(req: Request) {
       { headers: { Authorization: `Bearer ${accessToken}` } }
     )
     const gmailData = await gmailRes.json()
+    console.log('emails encontrados:', JSON.stringify(gmailData))
 
     if (!gmailData.messages || gmailData.messages.length === 0) {
       return NextResponse.json({ ok: true, gastos: [], msg: 'No se encontraron emails de bancos' })
