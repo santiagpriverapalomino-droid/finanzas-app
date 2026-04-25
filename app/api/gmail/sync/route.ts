@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     }
 console.log('accessToken obtenido:', accessToken ? 'SI' : 'NO', '| valor:', accessToken?.slice(0,20))
     // Buscar emails de bancos peruanos
-    const query = encodeURIComponent('from:(viabcp.com OR bcp.com.pe OR notificaciones@yape.com.pe OR yape) subject:(compra OR pago OR cargo OR transferencia OR operacion)')
+    const query = encodeURIComponent('from:(notificaciones@notificacionesbcp.com.pe OR notificaciones@yape.com.pe) subject:(consumo OR compra OR pago OR cargo OR transferencia)')
     const gmailRes = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=20`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
