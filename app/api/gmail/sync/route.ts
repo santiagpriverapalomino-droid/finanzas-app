@@ -161,7 +161,20 @@ const gasto = JSON.parse(clean)
 if (isFirstSync) {
   await supabase.from('profiles').update({ gmail_first_sync_done: true }).eq('id', userId)
 }
-    return NextResponse.json({ ok: true, gastos: gastos.length, insertados })
+    if (insertados > 0) {
+  await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/push/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId,
+      title: '💳 Nuevo gasto detectado',
+      body: `Se importaron ${insertados} gasto${insertados > 1 ? 's' : ''} nuevo${insertados > 1 ? 's' : ''} desde tu banco`,
+      url: '/gastos'
+    })
+  })
+}
+
+return NextResponse.json({ ok: true, gastos: gastos.length, insertados })
   } catch (error) {
     return NextResponse.json({ ok: false, error: String(error) }, { status: 500 })
   }
