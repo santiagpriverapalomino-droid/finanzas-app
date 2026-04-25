@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       accessToken = await refreshToken(profile.gmail_refresh_token)
       await supabase.from('profiles').update({ gmail_access_token: accessToken }).eq('id', userId)
     }
-
+console.log('accessToken obtenido:', accessToken ? 'SI' : 'NO', '| valor:', accessToken?.slice(0,20))
     // Buscar emails de bancos peruanos
     const query = encodeURIComponent('from:(bcp.com.pe OR interbank.pe OR bbva.pe OR scotiabank.com.pe OR yape OR plin) subject:(compra OR pago OR cargo OR transacción)')
     const gmailRes = await fetch(
