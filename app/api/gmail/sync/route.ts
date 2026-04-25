@@ -127,8 +127,9 @@ Si no hay monto claro, responde: {"es_gasto": false}`
 
       try {
         const text = response.content[0].type === 'text' ? response.content[0].text : ''
-        console.log('IA respuesta:', text)
-        const gasto = JSON.parse(text.trim())
+console.log('IA respuesta:', text)
+const clean = text.replace(/```json|```/g, '').trim()
+const gasto = JSON.parse(clean)
         if (gasto.es_gasto && gasto.monto > 0) {
           gastos.push(gasto)
         }
