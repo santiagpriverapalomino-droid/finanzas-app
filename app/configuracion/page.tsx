@@ -161,7 +161,18 @@ export default function Configuracion() {
 try {
                 const permission = await Notification.requestPermission()
                 if (permission !== 'granted') { alert('Debes permitir las notificaciones para activarlas.'); return }
-                await navigator.serviceWorker.register('/sw.js')
+                const registration = await navigator.serviceWorker.register('/sw.js')
+await new Promise<void>(resolve => {
+  if (registration.active) { resolve(); return }
+  registration.addEventListener('updatefound', () => {
+    const newWorker = registration.installing
+    if (!newWorker) { resolve(); return }
+    newWorker.addEventListener('statechange', () => {
+      if (newWorker.state === 'activated') resolve()
+    })
+  })
+  setTimeout(resolve, 3000)
+})
 const reg = await navigator.serviceWorker.ready
                 const existing = await reg.pushManager.getSubscription()
 const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
