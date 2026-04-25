@@ -157,7 +157,8 @@ export default function Configuracion() {
                 <span className="text-[15px] font-medium text-[#1f1f1f]">Notificaciones</span>
               </div>
               <button onClick={async () => {
-                if (!('serviceWorker' in navigator) || !('PushManager' in window)) { alert('Tu navegador no soporta notificaciones push.'); return }
+                if (!('serviceWorker' in navigator) || !('PushManager' in window)) { setMsg('❌ Tu navegador no soporta push'); return }
+try {
                 const permission = await Notification.requestPermission()
                 if (permission !== 'granted') { alert('Debes permitir las notificaciones para activarlas.'); return }
                 const reg = await navigator.serviceWorker.ready
@@ -167,6 +168,9 @@ export default function Configuracion() {
                 const resData = await res.json()
 if (res.ok) setMsg('✅ Notificaciones activadas')
 else setMsg('❌ Error: ' + JSON.stringify(resData))
+              } catch (err) {
+                setMsg('❌ Excepción: ' + String(err))
+              }
               }} className="text-[13px] font-bold text-white bg-[#5a4bc3] px-4 py-2 rounded-full">
                 Activar
               </button>
