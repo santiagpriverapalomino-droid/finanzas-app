@@ -165,10 +165,11 @@ try {
 const reg = await navigator.serviceWorker.ready
                 const existing = await reg.pushManager.getSubscription()
 const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-const outputArray = new Uint8Array(
-  atob(vapidKey.replace(/-/g, '+').replace(/_/g, '/').padEnd(vapidKey.length + (4 - vapidKey.length % 4) % 4, '='))
-    .split('').map(c => c.charCodeAt(0))
-)
+const padding = '='.repeat((4 - vapidKey.length % 4) % 4)
+const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/')
+const rawData = window.atob(base64)
+const outputArray = new Uint8Array(rawData.length)
+for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i)
 const sub = existing || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: outputArray })
                 const subJson = sub.toJSON()
                 const res = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id, subscription: subJson }) })               
