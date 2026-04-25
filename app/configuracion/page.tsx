@@ -165,6 +165,8 @@ try {
 const reg = await navigator.serviceWorker.ready
                 const existing = await reg.pushManager.getSubscription()
 const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
+setMsg('Key: ' + vapidKey?.slice(0,20))
+await new Promise(r => setTimeout(r, 2000))
 const padding = '='.repeat((4 - vapidKey.length % 4) % 4)
 const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/')
 const rawData = window.atob(base64)
