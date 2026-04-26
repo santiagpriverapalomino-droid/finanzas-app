@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-async function llamarClaude(apiKey: string, pregunta: string, resumenGastos: string, intentos = 3): Promise<string> {
+async function llamarClaude(apiKey: string, pregunta: string, resumenGastos: string, historial: {role: string, content: string}[], intentos = 3): Promise<string> {
   for (let i = 0; i < intentos; i++) {
     try {
+      const msgUsuario = resumenGastos
+        ? `Mis gastos de este mes:\n${resumenGastos}\n\nPregunta: ${pregunta}`
+        : pregunta
+
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -18,15 +22,12 @@ Eres amigable, directo y conoces el contexto financiero peruano (AFP, CTS, ONP, 
 Responde SIEMPRE en texto plano sin markdown, sin asteriscos, sin símbolos #, sin guiones como viñetas.
 Usa párrafos cortos separados por saltos de línea. Máximo 4 párrafos.
 Si el usuario tiene gastos registrados úsalos para personalizar tu respuesta.
-Puedes responder cualquier pregunta sobre finanzas personales, ahorro, inversiones, deudas, presupuesto, economía peruana y los gastos del usuario.
+Recuerdas todo lo que se ha hablado en esta conversación y das respuestas coherentes con el historial.
+Puedes responder cualquier pregunta sobre finanzas personales, ahorro, inversiones, deudas, presupuesto, economía tanto peruana como mundial y los gastos del usuario.
 Nunca garantices rendimientos de inversión.`,
           messages: [
-            {
-              role: 'user',
-              content: resumenGastos
-                ? `Mis gastos de este mes:\n${resumenGastos}\n\nPregunta: ${pregunta}`
-                : pregunta
-            }
+            ...historial,
+            { role: 'user', content: msgUsuario }
           ]
         })
       })
@@ -72,14 +73,14 @@ Nunca garantices rendimientos de inversión.`,
 }
 
 export async function POST(req: NextRequest) {
-  const { pregunta, resumenGastos } = await req.json()
+  const { pregunta, resumenGastos, historial } = await req.json()
   const apiKey = process.env.ANTHROPIC_API_KEY
 
   if (!apiKey || apiKey === 'tu_api_key_aqui') {
     return NextResponse.json({ respuesta: getRespuestaPredefinida(pregunta) })
   }
 
-  const respuesta = await llamarClaude(apiKey, pregunta, resumenGastos || '')
+  const respuesta = await llamarClaude(apiKey, pregunta, resumenGastos || '', historial || [])
   return NextResponse.json({ respuesta })
 }
 

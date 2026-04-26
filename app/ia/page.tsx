@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase'
 import TourGuide from '../../components/tourguide'
 
 interface Mensaje { rol: 'ia' | 'user'; texto: string }
+interface MsgApi { role: string; content: string }
 
 const PREGUNTAS_SUGERIDAS = [
   '¿Cómo puedo ahorrar con mi sueldo mínimo?',
@@ -21,6 +22,7 @@ export default function ChatIA() {
   const [profile, setProfile] = useState<any>(null)
   const [gastos, setGastos] = useState<any[]>([])
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
+  const [historialApi, setHistorialApi] = useState<MsgApi[]>([])
   const [input, setInput] = useState('')
   const [cargando, setCargando] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -61,15 +63,23 @@ export default function ChatIA() {
     setCargando(true)
 
     const resumen = gastos.map((g: any) => `${g.description}: S/${g.amount} (${g.category}) - ${g.date}`).join('\n')
+    const msgUsuario = resumen
+      ? `Mis gastos de este mes:\n${resumen}\n\nPregunta: ${texto}`
+      : texto
 
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pregunta: texto, resumenGastos: resumen })
+        body: JSON.stringify({ pregunta: texto, resumenGastos: resumen, historial: historialApi })
       })
       const { respuesta } = await res.json()
       setMensajes(prev => [...prev, { rol: 'ia', texto: respuesta }])
+      setHistorialApi(prev => [
+        ...prev,
+        { role: 'user', content: msgUsuario },
+        { role: 'assistant', content: respuesta }
+      ])
     } catch {
       setMensajes(prev => [...prev, { rol: 'ia', texto: 'Hubo un error. Intenta de nuevo.' }])
     }
@@ -82,7 +92,6 @@ export default function ChatIA() {
 
   return (
     <div className="min-h-screen bg-[#f5f3ee] flex flex-col">
-      {/* Header */}
       <div className="px-4 pt-5 pb-2 flex items-start justify-between flex-shrink-0">
         <div>
           <p className="text-[11px] font-semibold tracking-widest text-[#8c887d] uppercase">{firstName}</p>
@@ -98,7 +107,6 @@ export default function ChatIA() {
         </div>
       </div>
 
-      {/* Chat */}
       <div className="flex-1 overflow-y-auto px-4 py-2 pb-4 space-y-3">
         {mensajes.map((m, i) => (
           <div key={i} className={`flex ${m.rol === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -107,7 +115,7 @@ export default function ChatIA() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               </div>
             )}
-            <div className={`max-w-[78%] rounded-[20px] px-4 py-3 text-[14px] leading-relaxed ${
+            <div className={`max-w-[78%] rounded-[20px] px-4 py-3 text-[14px] leading-relaxed whitespace-pre-wrap ${
               m.rol === 'user'
                 ? 'bg-[#5a4bc3] text-white rounded-tr-[4px]'
                 : 'bg-white border border-[#ebe6db] text-[#1f1f1f] rounded-tl-[4px]'
@@ -133,10 +141,10 @@ export default function ChatIA() {
         )}
       </div>
 
-      {/* Preguntas sugeridas */}
       {mensajes.length <= 1 && (
         <div className="px-4 pb-2 flex-shrink-0">
-<div className="flex flex-wrap gap-2" data-tour="preguntas">            {PREGUNTAS_SUGERIDAS.map(p => (
+          <div className="flex flex-wrap gap-2" data-tour="preguntas">
+            {PREGUNTAS_SUGERIDAS.map(p => (
               <button key={p} onClick={() => enviar(p)}
                 className="rounded-full border border-[#c8bbf5] bg-[#ede9ff] px-3 py-1.5 text-[12px] font-medium text-[#5a4bc3] hover:bg-[#ddd5ff] transition-colors">
                 {p}
@@ -146,9 +154,9 @@ export default function ChatIA() {
         </div>
       )}
 
-      {/* Input */}
       <div className="px-4 pb-24 flex-shrink-0">
-<div className="flex gap-2 bg-white rounded-[22px] border border-[#ebe6db] p-2" data-tour="input-ia">          <input
+        <div className="flex gap-2 bg-white rounded-[22px] border border-[#ebe6db] p-2" data-tour="input-ia">
+          <input
             type="text"
             placeholder="Asesor Finti está atento..."
             value={input}
@@ -163,7 +171,6 @@ export default function ChatIA() {
         </div>
       </div>
 
-      {/* Navbar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#ece8df]">
         <div className="max-w-md mx-auto flex">
           {[
@@ -178,25 +185,24 @@ export default function ChatIA() {
             </Link>
           ))}
           <TourGuide
-        tourKey="ia"
-        steps={[
-          {
-            target: 'preguntas',
-            title: '💡 Preguntas sugeridas',
-            message: 'Toca cualquiera de estas preguntas para empezar. Están pensadas para sacarle el máximo provecho a tu asesor.',
-            position: 'bottom'
-          },
-          {
-            target: 'input-ia',
-            title: '🤖 Tu asesor financiero',
-            message: 'Escribe cualquier pregunta sobre tus finanzas. Conoce tus gastos y te da consejos personalizados.',
-            position: 'top'
-          }
-        ]}
-      />
+            tourKey="ia"
+            steps={[
+              {
+                target: 'preguntas',
+                title: '💡 Preguntas sugeridas',
+                message: 'Toca cualquiera de estas preguntas para empezar. Están pensadas para sacarle el máximo provecho a tu asesor.',
+                position: 'bottom'
+              },
+              {
+                target: 'input-ia',
+                title: '🤖 Tu asesor financiero',
+                message: 'Escribe cualquier pregunta sobre tus finanzas. Conoce tus gastos y te da consejos personalizados.',
+                position: 'top'
+              }
+            ]}
+          />
         </div>
       </div>
     </div>
   )
 }
-
