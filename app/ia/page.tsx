@@ -21,6 +21,7 @@ export default function ChatIA() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [gastos, setGastos] = useState<any[]>([])
+  const [gastosHistorial, setGastosHistorial] = useState<any[]>([])
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
   const [historialApi, setHistorialApi] = useState<MsgApi[]>([])
   const [input, setInput] = useState('')
@@ -38,8 +39,11 @@ export default function ChatIA() {
 
       const now = new Date()
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+      const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString().split('T')[0]
       const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).gte('date', firstDay)
+      const { data: expHistorial } = await supabase.from('expenses').select('amount, date, category').eq('user_id', user.id).gte('date', threeMonthsAgo).lt('date', firstDay)
       setGastos(exp || [])
+      setGastosHistorial(expHistorial || [])
 
       const nombre = user.user_metadata?.full_name?.split(' ')[0] || 'ahí'
       const totalGastado = (exp || []).reduce((s: number, e: any) => s + Number(e.amount), 0)
@@ -63,6 +67,29 @@ export default function ChatIA() {
     setCargando(true)
 
     const resumen = gastos.map((g: any) => `${g.description}: S/${g.amount} (${g.category}) - ${g.date}`).join('\n')
+
+      const totalMes = gastos.reduce((s: number, e: any) => s + Number(e.amount), 0)
+      const ingreso = profile?.monthly_income || 0
+      const disponible = ingreso - totalMes
+
+      const resumenHistorial = gastosHistorial.length > 0
+        ? (() => {
+            const byMonth: Record<string, number> = {}
+            gastosHistorial.forEach((e: any) => {
+              const key = e.date.slice(0, 7)
+              byMonth[key] = (byMonth[key] || 0) + Number(e.amount)
+            })
+            return Object.entries(byMonth).map(([k, v]) => `${k}: S/${v.toFixed(0)}`).join(', ')
+          })()
+        : null
+
+      const contextoUsuario = [
+        ingreso > 0 ? `Ingreso mensual: S/${ingreso}` : null,
+        ingreso > 0 ? `Disponible este mes: S/${disponible.toFixed(0)}` : null,
+        profile?.salary_day ? `Día de cobro: ${profile.salary_day}` : null,
+        profile?.needs_percent ? `Plan de distribución: ${profile.needs_percent}% necesidades, ${profile.wants_percent}% gustos, ${profile.savings_percent}% ahorro` : null,
+        resumenHistorial ? `Gastos últimos 3 meses: ${resumenHistorial}` : null,
+      ].filter(Boolean).join('\n')
     const msgUsuario = resumen
       ? `Mis gastos de este mes:\n${resumen}\n\nPregunta: ${texto}`
       : texto
@@ -71,8 +98,7 @@ export default function ChatIA() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pregunta: texto, resumenGastos: resumen, historial: historialApi })
-      })
+  body: JSON.stringify({ pregunta: texto, resumenGastos: resumen, contextoUsuario, historial: historialApi })      })
       const { respuesta } = await res.json()
       setMensajes(prev => [...prev, { rol: 'ia', texto: respuesta }])
       setHistorialApi(prev => [

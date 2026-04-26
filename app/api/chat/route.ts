@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-async function llamarClaude(apiKey: string, pregunta: string, resumenGastos: string, historial: {role: string, content: string}[], intentos = 3): Promise<string> {
+async function llamarClaude(apiKey: string, pregunta: string, resumenGastos: string, contextoUsuario: string, historial: {role: string, content: string}[], intentos = 3): Promise<string> {
   for (let i = 0; i < intentos; i++) {
     try {
-      const msgUsuario = resumenGastos
-        ? `Mis gastos de este mes:\n${resumenGastos}\n\nPregunta: ${pregunta}`
-        : pregunta
+      const msgUsuario = [
+        contextoUsuario ? `Contexto del usuario:\n${contextoUsuario}` : null,
+        resumenGastos ? `Gastos de este mes:\n${resumenGastos}` : null,
+        `Pregunta: ${pregunta}`
+      ].filter(Boolean).join('\n\n')
 
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -73,14 +75,14 @@ Nunca garantices rendimientos de inversión.`,
 }
 
 export async function POST(req: NextRequest) {
-  const { pregunta, resumenGastos, historial } = await req.json()
+  const { pregunta, resumenGastos, contextoUsuario, historial } = await req.json()
   const apiKey = process.env.ANTHROPIC_API_KEY
 
   if (!apiKey || apiKey === 'tu_api_key_aqui') {
     return NextResponse.json({ respuesta: getRespuestaPredefinida(pregunta) })
   }
 
-  const respuesta = await llamarClaude(apiKey, pregunta, resumenGastos || '', historial || [])
+  const respuesta = await llamarClaude(apiKey, pregunta, resumenGastos || '', contextoUsuario || '', historial || [])
   return NextResponse.json({ respuesta })
 }
 
