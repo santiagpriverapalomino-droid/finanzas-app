@@ -58,8 +58,8 @@ export async function POST(req: Request) {
     }
 
     const isFirstSync = !profile.gmail_first_sync_done
-const maxEmails = isFirstSync ? 100 : 10
-const query = encodeURIComponent('from:notificacionesbcp.com.pe')
+    const maxEmails = isFirstSync ? 100 : 10
+    const query = encodeURIComponent('from:notificacionesbcp.com.pe')
 
     const gmailRes = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=${maxEmails}`,
@@ -86,7 +86,6 @@ const query = encodeURIComponent('from:notificacionesbcp.com.pe')
         if (part?.body?.data) {
           rawBody += Buffer.from(part.body.data, 'base64').toString('utf-8')
         }
-        // partes anidadas
         if (part?.parts) {
           for (const subpart of part.parts) {
             if (subpart?.body?.data) {
@@ -99,6 +98,7 @@ const query = encodeURIComponent('from:notificacionesbcp.com.pe')
       const body = stripHtml(rawBody).slice(0, 800)
       const subject = msgData.payload?.headers?.find((h: any) => h.name === 'Subject')?.value || ''
       const date = msgData.payload?.headers?.find((h: any) => h.name === 'Date')?.value || ''
+
       const prompt = `Eres un extractor de gastos bancarios peruanos. Analiza este email del BCP.
 
 Asunto: ${subject}
@@ -125,8 +125,8 @@ Si no hay monto claro, responde: {"es_gasto": false}`
 
       try {
         const text = response.content[0].type === 'text' ? response.content[0].text : ''
-const clean = text.replace(/```json|```/g, '').trim()
-const gasto = JSON.parse(clean)
+        const clean = text.replace(/```json|```/g, '').trim()
+        const gasto = JSON.parse(clean)
         if (gasto.es_gasto && gasto.monto > 0) {
           gastos.push(gasto)
         }
@@ -136,6 +136,8 @@ const gasto = JSON.parse(clean)
     }
 
     let insertados = 0
+    const FIXED = ['Alimentación', 'Transporte', 'Entretenimiento', 'Compras', 'Servicios']
+
     for (const gasto of gastos) {
       const { data: existing } = await supabase
         .from('expenses')
@@ -156,25 +158,39 @@ const gasto = JSON.parse(clean)
           source: 'gmail',
         })
         insertados++
+
+        // Auto-agregar categoría nueva al perfil si no existe
+        if (!FIXED.includes(gasto.categoria)) {
+          const { data: prof } = await supabase.from('profiles').select('custom_categories').eq('id', userId).single()
+          const currentCats: string[] = prof?.custom_categories || []
+          if (!currentCats.includes(gasto.categoria)) {
+            await supabase.from('profiles').update({
+              custom_categories: [...currentCats, gasto.categoria]
+            }).eq('id', userId)
+          }
+        }
       }
     }
-if (isFirstSync) {
-  await supabase.from('profiles').update({ gmail_first_sync_done: true }).eq('id', userId)
-}
-    if (insertados > 0) {
-  await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/push/send`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      userId,
-      title: '💳 Nuevo gasto detectado',
-      body: `Se importaron ${insertados} gasto${insertados > 1 ? 's' : ''} nuevo${insertados > 1 ? 's' : ''} desde tu banco`,
-      url: '/gastos'
-    })
-  })
-}
 
-return NextResponse.json({ ok: true, gastos: gastos.length, insertados })
+    if (isFirstSync) {
+      await supabase.from('profiles').update({ gmail_first_sync_done: true }).eq('id', userId)
+    }
+
+    if (insertados > 0) {
+      await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/push/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          title: '💳 Nuevo gasto detectado',
+          body: `Se importaron ${insertados} gasto${insertados > 1 ? 's' : ''} nuevo${insertados > 1 ? 's' : ''} desde tu banco`,
+          url: '/gastos'
+        })
+      })
+    }
+
+    return NextResponse.json({ ok: true, gastos: gastos.length, insertados })
+
   } catch (error) {
     return NextResponse.json({ ok: false, error: String(error) }, { status: 500 })
   }

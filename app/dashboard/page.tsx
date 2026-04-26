@@ -12,6 +12,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Transporte': '#1fa18b',
   'Entretenimiento': '#f1a22e',
   'Compras': '#db6334',
+  'Otros': '#94a3b8',
 }
 const EXTRA_COLORS = ['#9333ea','#2563eb','#16a34a','#ca8a04','#dc2626','#db2777']
 
@@ -286,7 +287,12 @@ await enviarNotifSiCorresponde(
     const allCats = [...FIXED_CATEGORIES, ...customCats]
     const map: Record<string,number> = {}
     expenses.forEach(e => { map[e.category]=(map[e.category]||0)+Number(e.amount) })
-    return allCats.map(cat=>({cat, amount:map[cat]||0}))
+    const known = allCats.map(cat=>({cat, amount:map[cat]||0}))
+    const otrosAmount = expenses
+      .filter(e => !allCats.includes(e.category))
+      .reduce((s,e)=>s+Number(e.amount),0)
+    if (otrosAmount > 0) known.push({cat:'Otros', amount:otrosAmount})
+    return known
   }, [expenses, customCats])
 
   const highestCat = Math.max(...orderedCategories.map(c=>c.amount),1)
