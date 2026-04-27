@@ -77,7 +77,6 @@ const [simbolosGuardados, setSimbolosGuardados] = useState([
 const simbolosIniciales = [
   { symbol: 'SPY', nombre: 'S&P 500 ETF', sub: 'ETF · USD' },
 { symbol: 'BTC', nombre: 'Bitcoin', sub: 'Cripto · USD', cripto: true },
-{ symbol: 'GC=F', nombre: 'Oro (Futuros)', sub: 'COMEX · USD' },
 { symbol: 'USD', nombre: 'USD/PEN', sub: 'Tipo de cambio', fx: true },
 ]
 const cargarCotizaciones = async (simbolos = simbolosIniciales) => {
@@ -194,35 +193,30 @@ cargarNoticias()
 
   return (
     <div className="min-h-screen bg-[#f5f3ee]">
-      <div className="px-4 pt-5 pb-2 flex items-start justify-between">
-        <div>
-          <p className="text-[11px] font-semibold tracking-widest text-[#8c887d] uppercase">{firstName}</p>
-          <p className="text-[13px] font-bold tracking-widest text-[#1f1f1f] uppercase">Mis Inversiones</p>
+      <div className="bg-[#5a4bc3] px-4 pt-10 pb-10">
+        <div className="flex items-start justify-between mb-5">
+          <div>
+            <p className="text-[11px] font-semibold tracking-widest text-white/55 uppercase">{firstName}</p>
+            <p className="text-[14px] font-bold text-white">Inversiones</p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/configuracion" className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </Link>
+            <button onClick={async () => { await supabase.auth.signOut(); router.push('/') }} className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Link href="/configuracion" className="w-9 h-9 rounded-full bg-[#ece8df] flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5a4bc3" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          </Link>
-          <button onClick={async () => { await supabase.auth.signOut(); router.push('/') }} className="w-9 h-9 rounded-full bg-[#ece8df] flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5a4bc3" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          </button>
+        <p className="text-[11px] text-white/60 uppercase tracking-wide mb-1">Total invertido</p>
+        <p className="text-[44px] font-bold text-white leading-none">{fmt(totalInvertido)}</p>
+        <div className="flex gap-2 mt-3">
+          <span className="bg-[#4ade80]/25 text-[#4ade80] text-[11px] font-semibold px-3 py-1.5 rounded-full">+{rendimientoPromedio.toFixed(1)}% anual est.</span>
+          {investments.length > 0 && <span className="bg-white/15 text-white text-[11px] px-3 py-1.5 rounded-full">{investments.length} {investments.length === 1 ? 'inversión' : 'inversiones'}</span>}
         </div>
       </div>
 
-      <div className="px-4 pb-32 space-y-4 mt-2">
-
-        {/* 1. Resumen */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-[22px] bg-[#f3f0e8] p-4 border border-[#ebe6db]">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-[#726d62]">Total invertido</p>
-            <p className="mt-1 text-[22px] font-bold text-[#5a4bc3]">{fmt(totalInvertido)}</p>
-          </div>
-          <div className="rounded-[22px] bg-[#f3f0e8] p-4 border border-[#ebe6db]">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-[#726d62]">Rendimiento est.</p>
-            <p className="mt-1 text-[22px] font-bold text-[#22c55e]">+{rendimientoPromedio.toFixed(1)}%</p>
-            <p className="text-[10px] text-[#8c887d]">anual promedio</p>
-          </div>
-        </div>
+      <div className="bg-[#f5f3ee] rounded-t-[28px] -mt-5 px-4 pt-5 pb-32 space-y-4">
 
         {/* 2. Simulador de portafolio */}
         <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
