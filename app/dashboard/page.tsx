@@ -57,7 +57,8 @@ function DonutChart({ expenses, customCats }: { expenses: Expense[], customCats:
   }, [expenses, total, customCats])
 
   if (total === 0) return (
-    <div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
+    <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-[#726d62] mb-3">Distribución de gastos</p>
       <div className="flex flex-col items-center py-4">
         <svg viewBox="0 0 120 120" width="110" height="110">
           <circle cx="60" cy="60" r="45" fill="none" stroke="#e5e0d5" strokeWidth="18"/>
@@ -78,10 +79,11 @@ function DonutChart({ expenses, customCats }: { expenses: Expense[], customCats:
   const hov = hovered ? segments.find(s=>s.cat===hovered) : null
 
   return (
-    <div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
+    <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-[#726d62] mb-3">Distribución de gastos</p>
       <div className="flex items-center gap-4">
         <div className="relative flex-shrink-0">
-          <svg viewBox="0 0 120 120" width="120" height="120" style={{transform:'rotate(-90deg)'}}>
+          <svg viewBox="0 0 120 120" width="110" height="110" style={{transform:'rotate(-90deg)'}}>
             {slices.map(s => (
               <circle key={s.cat} cx={cx2} cy={cy2} r={r} fill="none"
                 stroke={s.color} strokeWidth="18"
@@ -93,19 +95,19 @@ function DonutChart({ expenses, customCats }: { expenses: Expense[], customCats:
             ))}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <p className="text-[11px] font-bold text-[#726d62]">{hov?hov.cat.slice(0,6):'Total'}</p>
-            <p className="text-[13px] font-bold text-[#1f1f1f]">{hov?fmt(hov.val):fmt(total)}</p>
+            <p className="text-[10px] font-bold text-[#726d62]">{hov ? hov.cat.slice(0,6) : 'Total'}</p>
+            <p className="text-[13px] font-bold text-[#1f1f1f]">{hov ? fmt(hov.val) : fmt(total)}</p>
           </div>
         </div>
-        <div className="flex-1 space-y-1.5">
+        <div className="flex-1 space-y-2">
           {segments.map(s => (
             <div key={s.cat} className="flex items-center justify-between cursor-pointer"
               onMouseEnter={()=>setHovered(s.cat)} onMouseLeave={()=>setHovered(null)}>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background:s.color}}/>
-                <span className="text-[12px] text-[#403c37] truncate max-w-[70px]">{s.cat}</span>
+                <span className="text-[11px] text-[#403c37] truncate max-w-[72px]">{s.cat}</span>
               </div>
-              <span className="text-[12px] font-semibold text-[#1f1f1f]">{fmt(s.val)}</span>
+              <span className="text-[11px] font-semibold text-[#1f1f1f]">{fmt(s.val)}</span>
             </div>
           ))}
         </div>
@@ -122,14 +124,13 @@ export default function Dashboard() {
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
   const [racha, setRacha] = useState(0)
-const [logro, setLogro] = useState<string | null>(null)
+  const [logro, setLogro] = useState<string | null>(null)
 
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
 
-      // Verificar onboarding
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       if (!prof?.monthly_income || !prof?.salary_day) {
         router.push('/onboarding'); return
@@ -145,80 +146,41 @@ const [logro, setLogro] = useState<string | null>(null)
 
       const { data: g } = await supabase.from('goals').select('*').eq('user_id', user.id).order('created_at', {ascending:true})
       setGoals(g || [])
-// Calcular racha de días con gastos
-const { data: allExp } = await supabase.from('expenses').select('date').eq('user_id', user.id).order('date', { ascending: false })
-if (allExp && allExp.length > 0) {
-  const uniqueDays = [...new Set(allExp.map((e: any) => e.date))].sort().reverse()
-  let streak = 0
-  const today = new Date()
-  for (let i = 0; i < uniqueDays.length; i++) {
-    const expected = new Date(today)
-    expected.setDate(today.getDate() - i)
-    const expectedStr = `${expected.getFullYear()}-${String(expected.getMonth()+1).padStart(2,'0')}-${String(expected.getDate()).padStart(2,'0')}`
-    if (uniqueDays[i] === expectedStr) { streak++ } else { break }
-  }
-  setRacha(streak)
-  if (streak >= 30) setLogro('Mes completo')
-  else if (streak >= 14) setLogro('Dos semanas seguidas')
-  else if (streak >= 7) setLogro('Una semana seguida')
-  else if (streak >= 3) setLogro('Constancia inicial')
-}
-// Enviar notificaciones automáticas
-const enviarNotifSiCorresponde = async (userId: string, income: number, gastos: number, salaryDay: number, goals: any[]) => {
-  const ratio = income > 0 ? gastos / income : 0
-  const hoy = new Date().getDate()
 
-  if (ratio >= 0.8) {
-    await fetch('/api/push', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId,
-        title: '⚠️ Presupuesto casi agotado',
-        body: `Llevás gastado el ${Math.round(ratio*100)}% de tu presupuesto. Quedan S/${Math.round(income - gastos)}.`,
-        url: '/gastos'
-      })
-    }).catch(() => {})
-  }
+      const { data: allExp } = await supabase.from('expenses').select('date').eq('user_id', user.id).order('date', { ascending: false })
+      if (allExp && allExp.length > 0) {
+        const uniqueDays = [...new Set(allExp.map((e: any) => e.date))].sort().reverse()
+        let streak = 0
+        const today = new Date()
+        for (let i = 0; i < uniqueDays.length; i++) {
+          const expected = new Date(today)
+          expected.setDate(today.getDate() - i)
+          const expectedStr = `${expected.getFullYear()}-${String(expected.getMonth()+1).padStart(2,'0')}-${String(expected.getDate()).padStart(2,'0')}`
+          if (uniqueDays[i] === expectedStr) { streak++ } else { break }
+        }
+        setRacha(streak)
+        if (streak >= 30) setLogro('Mes completo')
+        else if (streak >= 14) setLogro('Dos semanas seguidas')
+        else if (streak >= 7) setLogro('Una semana seguida')
+        else if (streak >= 3) setLogro('Constancia inicial')
+      }
 
-  if (hoy === salaryDay) {
-    await fetch('/api/push', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId,
-        title: '💰 Hoy es día de cobro',
-        body: 'Recuerda apartar tu ahorro antes de gastar. ¡Primero págate a ti mismo!',
-        url: '/dashboard'
-      })
-    }).catch(() => {})
-  }
+      const enviarNotif = async (userId: string, income: number, gastos: number, salaryDay: number, goals: any[]) => {
+        const ratio = income > 0 ? gastos / income : 0
+        const hoy = new Date().getDate()
+        if (ratio >= 0.8) {
+          await fetch('/api/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, title: '⚠️ Presupuesto casi agotado', body: `Llevás gastado el ${Math.round(ratio*100)}% de tu presupuesto.`, url: '/gastos' }) }).catch(()=>{})
+        }
+        if (hoy === salaryDay) {
+          await fetch('/api/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, title: '💰 Hoy es día de cobro', body: 'Recuerda apartar tu ahorro antes de gastar.', url: '/dashboard' }) }).catch(()=>{})
+        }
+        const metaCercana = goals.find((g: any) => { const pct = g.target_amount > 0 ? g.saved_amount / g.target_amount : 0; return pct >= 0.8 && pct < 1 })
+        if (metaCercana) {
+          await fetch('/api/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, title: '🎯 Meta casi lista', body: `Tu meta "${metaCercana.name}" está al ${Math.round(metaCercana.saved_amount/metaCercana.target_amount*100)}%.`, url: '/metas' }) }).catch(()=>{})
+        }
+      }
 
-  const metaCercana = goals.find((g: any) => {
-    const pct = g.target_amount > 0 ? g.saved_amount / g.target_amount : 0
-    return pct >= 0.8 && pct < 1
-  })
-  if (metaCercana) {
-    await fetch('/api/push', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId,
-        title: '🎯 Meta casi lista',
-        body: `Tu meta "${metaCercana.name}" está al ${Math.round(metaCercana.saved_amount/metaCercana.target_amount*100)}%. ¡Ya casi!`,
-        url: '/metas'
-      })
-    }).catch(() => {})
-  }
-}
-
-await enviarNotifSiCorresponde(
-  user.id,
-  prof?.monthly_income || 0,
-  (exp || []).reduce((s: number, e: any) => s + Number(e.amount), 0),
-  prof?.salary_day || 0,
-  g || []
-)
+      await enviarNotif(user.id, prof?.monthly_income||0, (exp||[]).reduce((s:number,e:any)=>s+Number(e.amount),0), prof?.salary_day||0, g||[])
       setLoading(false)
     }
     init()
@@ -239,45 +201,27 @@ await enviarNotifSiCorresponde(
   }, [profile])
 
   const tipIndex = new Date().getDate() % NO_DATA_TIPS.length
-  const tip1 = NO_DATA_TIPS[tipIndex]
-  const tip2 = NO_DATA_TIPS[(tipIndex+1) % NO_DATA_TIPS.length]
+  const tip = NO_DATA_TIPS[tipIndex]
 
   const consejosPersonalizados = useMemo(() => {
     if (expenses.length === 0) return null
     const consejos: string[] = []
     const income = profile?.monthly_income || 0
     const ratio = income > 0 ? totalGastado / income : 0
-
-    // Categoría con más gasto
     const catMap: Record<string,number> = {}
     expenses.forEach(e => { catMap[e.category] = (catMap[e.category]||0) + Number(e.amount) })
     const topCat = Object.entries(catMap).sort((a,b) => b[1]-a[1])[0]
-
-    if (ratio > 0.9) {
-      consejos.push(`⚠️ Gastaste el ${Math.round(ratio*100)}% de tu ingreso este mes. Estás muy cerca del límite — revisa tus gastos no esenciales.`)
-    } else if (ratio > 0.7) {
-      consejos.push(`📊 Llevas el ${Math.round(ratio*100)}% de tu presupuesto gastado. Tienes S/${Math.round(income - totalGastado)} disponibles — úsalos con cuidado.`)
-    } else if (ratio < 0.3 && totalGastado > 0) {
-      consejos.push(`🎉 ¡Vas muy bien! Solo gastaste el ${Math.round(ratio*100)}% de tu ingreso. Considera mover el excedente a una meta de ahorro.`)
-    }
-
+    if (ratio > 0.9) consejos.push(`⚠️ Gastaste el ${Math.round(ratio*100)}% de tu ingreso este mes. Revisa tus gastos no esenciales.`)
+    else if (ratio > 0.7) consejos.push(`📊 Llevas el ${Math.round(ratio*100)}% del presupuesto. Te quedan S/${Math.round(income - totalGastado)} — úsalos con cuidado.`)
+    else if (ratio < 0.3 && totalGastado > 0) consejos.push(`🎉 ¡Vas muy bien! Solo gastaste el ${Math.round(ratio*100)}% de tu ingreso. Mueve el excedente a una meta de ahorro.`)
     if (topCat && topCat[1] > 0) {
       const pctCat = income > 0 ? Math.round(topCat[1]/income*100) : 0
-      if (topCat[0] === 'Entretenimiento' && pctCat > 20) {
-        consejos.push(`🎮 Entretenimiento es tu mayor gasto (${pctCat}% de tu ingreso). La regla 50/30/20 sugiere máximo 30% en gustos en total.`)
-      } else if (topCat[0] === 'Alimentación' && pctCat > 30) {
-        consejos.push(`🍽️ Alimentación representa el ${pctCat}% de tus gastos. Cocinar en casa 3 días más por semana puede ahorrarte S/150 al mes.`)
-      } else if (topCat[0] === 'Compras' && pctCat > 25) {
-        consejos.push(`🛍️ Compras es tu categoría más alta (${pctCat}%). Antes de comprar algo mayor a S/50, espera 48 horas para evaluar si realmente lo necesitas.`)
-      } else {
-        consejos.push(`📌 Tu mayor gasto este mes es ${topCat[0]} con S/${Math.round(topCat[1]).toLocaleString('es-PE')}. ¿Es lo que esperabas?`)
-      }
+      if (topCat[0] === 'Entretenimiento' && pctCat > 20) consejos.push(`🎮 Entretenimiento es tu mayor gasto (${pctCat}% de tu ingreso).`)
+      else if (topCat[0] === 'Alimentación' && pctCat > 30) consejos.push(`🍽️ Alimentación representa el ${pctCat}% de tus gastos. Cocinar en casa puede ahorrarte S/150.`)
+      else if (topCat[0] === 'Compras' && pctCat > 25) consejos.push(`🛍️ Compras es tu categoría más alta (${pctCat}%).`)
+      else consejos.push(`📌 Tu mayor gasto este mes es ${topCat[0]} con S/${Math.round(topCat[1]).toLocaleString('es-PE')}.`)
     }
-
-    if (daysUntilSalary <= 7 && daysUntilSalary > 0) {
-      consejos.push(`⏰ Faltan ${daysUntilSalary} días para tu cobro. Con S/${Math.round(income - totalGastado)} disponibles, planifica bien estos últimos días.`)
-    }
-
+    if (daysUntilSalary <= 7 && daysUntilSalary > 0) consejos.push(`⏰ Faltan ${daysUntilSalary} días para tu cobro. Planifica bien estos últimos días.`)
     return consejos.length > 0 ? consejos : null
   }, [expenses, totalGastado, profile, daysUntilSalary])
 
@@ -288,16 +232,13 @@ await enviarNotifSiCorresponde(
     const map: Record<string,number> = {}
     expenses.forEach(e => { map[e.category]=(map[e.category]||0)+Number(e.amount) })
     const known = allCats.map(cat=>({cat, amount:map[cat]||0}))
-    const otrosAmount = expenses
-      .filter(e => !allCats.includes(e.category))
-      .reduce((s,e)=>s+Number(e.amount),0)
+    const otrosAmount = expenses.filter(e => !allCats.includes(e.category)).reduce((s,e)=>s+Number(e.amount),0)
     if (otrosAmount > 0) known.push({cat:'Otros', amount:otrosAmount})
     return known
   }, [expenses, customCats])
 
   const highestCat = Math.max(...orderedCategories.map(c=>c.amount),1)
 
-  // Semana actual
   const weekData = useMemo(() => {
     const now = new Date()
     const dow = now.getDay()===0?6:now.getDay()-1
@@ -312,15 +253,11 @@ await enviarNotifSiCorresponde(
   const maxWeek = Math.max(...weekData.map(d=>d.total),1)
   const weekTotal = weekData.reduce((s,d)=>s+d.total,0)
 
-  // Primer sueldo
-  const isFirstSalary = profile?.is_first_salary_mode
   const needsPct = profile?.needs_percent||50
   const wantsPct = profile?.wants_percent||30
   const savingsPct = profile?.savings_percent||20
   const income = profile?.monthly_income||0
-
-  const needsSpent = useMemo(()=>expenses.filter(e=>['Alimentación','Transporte'].includes(e.category)).reduce((s,e)=>s+Number(e.amount),0),[expenses])
-  const wantsSpent = useMemo(()=>expenses.filter(e=>['Entretenimiento','Compras'].includes(e.category)).reduce((s,e)=>s+Number(e.amount),0),[expenses])
+  const isFirstSalary = profile?.is_first_salary_mode
 
   if (loading) return <div className="min-h-screen bg-[#f5f3ee] flex items-center justify-center"><p className="text-[#8c887d]">Cargando...</p></div>
 
@@ -328,114 +265,124 @@ await enviarNotifSiCorresponde(
 
   return (
     <div className="min-h-screen bg-[#f5f3ee]">
-      {/* Header */}
-      <div className="px-4 pt-5 pb-2 flex items-start justify-between">
-        <div>
-          <p className="text-[11px] font-semibold tracking-widest text-[#8c887d] uppercase">{firstName}</p>
-          <p className="text-[13px] font-bold tracking-widest text-[#1f1f1f] uppercase">Inicio / Dashboard</p>
+
+      {/* ── HEADER HERO ── */}
+      <div className="bg-[#5a4bc3] px-4 pt-10 pb-10">
+        <div className="flex items-start justify-between mb-5">
+          <div>
+            <p className="text-[11px] font-semibold tracking-widest text-white/55 uppercase">{firstName}</p>
+            <p className="text-[14px] font-bold text-white">Inicio</p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/configuracion" className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </Link>
+            <button onClick={async()=>{await supabase.auth.signOut();router.push('/')}} className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Link href="/configuracion" className="w-9 h-9 rounded-full bg-[#ece8df] flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5a4bc3" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          </Link>
-          <button onClick={async()=>{await supabase.auth.signOut();router.push('/')}} className="w-9 h-9 rounded-full bg-[#ece8df] flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5a4bc3" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          </button>
+        <p className="text-[11px] text-white/60 uppercase tracking-wide mb-1">Gastado este mes</p>
+        <p className="text-[44px] font-bold text-white leading-none">{fmt(totalGastado)}</p>
+        <div className="flex gap-2 mt-3 flex-wrap">
+          <span className="bg-[#4ade80]/25 text-[#4ade80] text-[11px] font-semibold px-3 py-1.5 rounded-full">{fmt(disponible)} disponible</span>
+          <span className="bg-white/15 text-white text-[11px] px-3 py-1.5 rounded-full">{daysUntilSalary}d para cobro</span>
         </div>
       </div>
 
-      <div className="px-4 pb-24 space-y-4 mt-1">
-
-        {/* Fecha */}
-        <p className="text-[13px] text-[#5d594f]">
-          {new Date().toLocaleDateString('es-PE',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase())} · {daysUntilSalary}d para cobro
-        </p>
-
-        {/* Banner primer sueldo */}
-        {isFirstSalary && (
-          <div className="flex items-center gap-3 rounded-[16px] border border-[#c8bbf5] bg-[#ede9ff] px-4 py-3">
-            <div className="w-8 h-8 rounded-full bg-[#5a4bc3] flex items-center justify-center text-white text-sm">⚡</div>
-            <div>
-              <p className="text-[13px] font-bold text-[#3d2fa0]">Tu plan {needsPct}/{wantsPct}/{savingsPct} está activo</p>
-              <p className="text-[12px] text-[#6b5fc0]">Necesidades · Gustos · Ahorro</p>
-            </div>
-          </div>
-        )}
+      {/* ── BODY ── */}
+      <div className="bg-[#f5f3ee] rounded-t-[28px] -mt-5 px-4 pt-5 pb-28 space-y-4">
 
         {/* Alertas */}
         {spendingRatio > 0.8 && (
-          <div className="flex items-center gap-3 rounded-[18px] border border-red-200 bg-red-50 p-4 text-[13px] text-red-700">
-            ⚠️ <span>¡Cuidado! Has gastado más del 80% de tu presupuesto este mes.</span>
+          <div className="flex items-center gap-3 rounded-[16px] border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
+            <span>⚠️</span><span>Gastaste más del 80% de tu presupuesto este mes.</span>
           </div>
         )}
         {spendingRatio > 0.6 && spendingRatio <= 0.8 && (
-          <div className="flex items-center gap-3 rounded-[18px] border border-yellow-200 bg-yellow-50 p-4 text-[13px] text-yellow-700">
-            ⚠️ <span>Atención: Has superado el 60% de tus ingresos este mes.</span>
+          <div className="flex items-center gap-3 rounded-[16px] border border-yellow-200 bg-yellow-50 px-4 py-3 text-[13px] text-yellow-700">
+            <span>⚠️</span><span>Atención: superaste el 60% de tu presupuesto.</span>
+          </div>
+        )}
+
+        {/* Plan activo */}
+        {isFirstSalary && (
+          <div className="flex items-center gap-3 rounded-[16px] border border-[#c8bbf5] bg-[#ede9ff] px-4 py-3">
+            <div className="w-8 h-8 rounded-full bg-[#5a4bc3] flex items-center justify-center text-sm">⚡</div>
+            <div>
+              <p className="text-[13px] font-bold text-[#3d2fa0]">Plan {needsPct}/{wantsPct}/{savingsPct} activo</p>
+              <p className="text-[11px] text-[#6b5fc0]">Necesidades · Gustos · Ahorro</p>
+            </div>
           </div>
         )}
 
         {/* Cards resumen */}
         <div className="grid grid-cols-2 gap-3" data-tour="resumen">
-          {[
-            {title:'Gastado este mes', value:fmt(totalGastado), color:'text-[#b24f58]'},
-            {title:'Disponible', value:fmt(disponible), color:'text-[#457d31]'},
-            {title:'Meta activa', value:activeGoal?.name||'Sin meta', color:'text-[#1f1f1f]'},
-            {title:'Progreso', value:activeGoal?`${goalPct}%`:'0%', color:'text-[#1f1f1f]'},
-          ].map(card=>(
-            <div key={card.title} className="rounded-[18px] bg-[#f3f0e8] p-4">
-              <p className="text-[13px] text-[#4d4a43]">{card.title}</p>
-              <p className={`mt-1 text-[17px] font-semibold ${card.color} truncate`}>{card.value}</p>
-            </div>
-          ))}
+          <div className="rounded-[18px] bg-white border border-[#ebe6db] p-4">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#9a9590] mb-1">Gastado</p>
+            <p className="text-[20px] font-bold text-[#b24f58]">{fmt(totalGastado)}</p>
+          </div>
+          <div className="rounded-[18px] bg-white border border-[#ebe6db] p-4">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#9a9590] mb-1">Disponible</p>
+            <p className="text-[20px] font-bold text-[#1a7a45]">{fmt(disponible)}</p>
+          </div>
         </div>
-{/* Racha y logros */}
-{racha > 0 && (
-  <div className="rounded-[22px] bg-[#5a4bc3] p-4">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-[11px] text-white/70 font-semibold uppercase tracking-wide mb-1">Racha activa</p>
-        <p className="text-[28px] font-bold text-white leading-none">{racha} {racha === 1 ? 'día' : 'días'}</p>
-        <p className="text-[12px] text-white/80 mt-1">registrando gastos seguidos</p>
-      </div>
-      <div className="text-right">
-        <div className="flex gap-1.5 mb-2 justify-end flex-wrap max-w-[120px]">
-          {Array.from({length: Math.min(racha, 10)}).map((_, i) => (
-            <div key={i} className="w-2.5 h-2.5 rounded-full bg-white"/>
-          ))}
-          {racha < 10 && Array.from({length: 10 - racha}).map((_, i) => (
-            <div key={i} className="w-2.5 h-2.5 rounded-full bg-white/30"/>
-          ))}
-        </div>
-        <p className="text-[11px] text-white/70">Meta: 10 días</p>
-      </div>
-    </div>
-    {logro && (
-      <div className="mt-3 flex items-center gap-2 bg-white/15 rounded-[14px] px-3 py-2">
-        <span className="text-[18px]">🏆</span>
-        <div>
-          <p className="text-[12px] font-bold text-white">Logro desbloqueado</p>
-          <p className="text-[11px] text-white/80">{logro}</p>
-        </div>
-      </div>
-    )}
-  </div>
-)}
 
-{/* Donut chart */}
-<DonutChart expenses={expenses} customCats={customCats} />
+        {/* Meta activa */}
+        {activeGoal && (
+          <div className="rounded-[18px] bg-white border border-[#ebe6db] p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[13px] font-bold text-[#1f1f1f]">🎯 {activeGoal.name}</p>
+              <p className="text-[13px] font-bold text-[#5a4bc3]">{goalPct}%</p>
+            </div>
+            <div className="h-2 bg-[#ede9ff] rounded-full overflow-hidden">
+              <div className="h-2 bg-[#5a4bc3] rounded-full transition-all" style={{width:`${goalPct}%`}}/>
+            </div>
+            <p className="text-[11px] text-[#9a9590] mt-1.5">{fmt(activeGoal.saved_amount)} de {fmt(activeGoal.target_amount)} ahorrados</p>
+          </div>
+        )}
+
+        {/* Racha */}
+        {racha > 0 && (
+          <div className="rounded-[18px] bg-[#5a4bc3] p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-white/60 mb-1">Racha activa</p>
+                <p className="text-[26px] font-bold text-white leading-none">{racha} {racha===1?'día':'días'}</p>
+                <p className="text-[11px] text-white/70 mt-1">registrando gastos seguidos</p>
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <div className="flex gap-1.5 flex-wrap justify-end max-w-[100px]">
+                  {Array.from({length:Math.min(racha,10)}).map((_,i)=><div key={i} className="w-2.5 h-2.5 rounded-full bg-white"/>)}
+                  {racha<10 && Array.from({length:10-racha}).map((_,i)=><div key={i} className="w-2.5 h-2.5 rounded-full bg-white/25"/>)}
+                </div>
+                <p className="text-[10px] text-white/60">Meta: 10 días</p>
+              </div>
+            </div>
+            {logro && (
+              <div className="mt-3 flex items-center gap-2 bg-white/15 rounded-[12px] px-3 py-2">
+                <span className="text-[16px]">🏆</span>
+                <div><p className="text-[11px] font-bold text-white">Logro desbloqueado</p><p className="text-[10px] text-white/75">{logro}</p></div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Donut chart */}
+        <DonutChart expenses={expenses} customCats={customCats} />
 
         {/* Esta semana */}
-        <div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
+        <div className="rounded-[18px] bg-white border border-[#ebe6db] p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[13px] font-bold uppercase tracking-wide text-[#47433d]">Esta Semana</h2>
-            <span className="text-[13px] font-bold text-[#b24f58]">{fmt(weekTotal)}</span>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-[#9a9590]">Esta semana</p>
+            <p className="text-[13px] font-bold text-[#b24f58]">{fmt(weekTotal)}</p>
           </div>
-          <div className="flex items-end gap-1 mb-2" style={{height:'48px'}}>
+          <div className="flex items-end gap-1.5 mb-2" style={{height:'48px'}}>
             {weekData.map(d=>{
               const h = d.total>0?Math.max(6,(d.total/maxWeek)*44):2
               return (
                 <div key={d.day} className="flex-1 flex items-end">
-                  <div className="w-full rounded-t-sm" style={{height:`${h}px`,background:d.isToday?'#5a4bc3':'#c8bbf5',opacity:d.total===0?0.3:1}}/>
+                  <div className="w-full rounded-t-[4px]" style={{height:`${h}px`,background:d.isToday?'#5a4bc3':'#c8bbf5',opacity:d.total===0?0.3:1}}/>
                 </div>
               )
             })}
@@ -443,98 +390,46 @@ await enviarNotifSiCorresponde(
           <div className="flex justify-between">
             {weekData.map(d=>(
               <div key={d.day} className="flex-1 flex flex-col items-center">
-                <p className={`text-[10px] ${d.isToday?'text-[#5a4bc3] font-bold':'text-[#8c887d]'}`}>{d.day}</p>
+                <p className={`text-[10px] ${d.isToday?'text-[#5a4bc3] font-bold':'text-[#aaa]'}`}>{d.day}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Mi plan este mes */}
-        {false && income > 0 && (
-          <div className="rounded-[22px] border border-[#c8bbf5] bg-[#faf9ff] p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span>📅</span>
-                <h2 className="text-[13px] font-bold uppercase tracking-wide text-[#3d2fa0]">Mi Plan Este Mes</h2>
-              </div>
-              <span className="text-[12px] bg-[#ede9ff] text-[#5a4bc3] px-3 py-1 rounded-full">{daysUntilSalary}d para cobro</span>
-            </div>
-            {[
-              {label:'Necesidades',icon:'🍽️',limit:Math.round(income*needsPct/100),spent:needsSpent},
-              {label:'Gustos',icon:'🛍️',limit:Math.round(income*wantsPct/100),spent:wantsSpent},
-            ].map(item=>{
-              const pct = item.limit>0?Math.min(100,(item.spent/item.limit)*100):0
-              return (
-                <div key={item.label} className="mb-3 bg-white rounded-[14px] p-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span>{item.icon}</span>
-                      <span className="text-[14px] font-semibold text-[#3d2fa0]">{item.label}</span>
-                    </div>
-                    <span className="text-[13px] font-bold text-[#22c55e]">Disp: {fmt(item.limit-item.spent)}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-[#ece8f0] mb-1">
-                    <div className="h-2 rounded-full bg-[#22c55e] transition-all" style={{width:`${pct}%`}}/>
-                  </div>
-                  <div className="flex justify-between text-[12px] text-[#8c887d]">
-                    <span>Gastado: {fmt(item.spent)}</span>
-                    <span>Límite: {fmt(item.limit)}</span>
-                  </div>
+        {/* Plan 50/30/20 */}
+        {isFirstSalary && income > 0 && (
+          <div className="rounded-[18px] bg-[#ede9ff] border border-[#c8bbf5] p-4">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-[#3d2fa0] mb-3">Tu plan {needsPct}/{wantsPct}/{savingsPct}</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                {label:'Necesidades', pct:needsPct, color:'#5a4bc3'},
+                {label:'Gustos', pct:wantsPct, color:'#f1a22e'},
+                {label:'Ahorro', pct:savingsPct, color:'#1a7a45'},
+              ].map(item=>(
+                <div key={item.label} className="bg-white/70 rounded-[12px] p-3 text-center">
+                  <p className="text-[9px] text-[#6b5fc0] mb-1">{item.label.toUpperCase()}</p>
+                  <p className="text-[16px] font-bold" style={{color:item.color}}>{item.pct}%</p>
+                  <p className="text-[9px] text-[#8b7fd0]">{fmt(Math.round(income*item.pct/100))}</p>
                 </div>
-              )
-            })}
-            <div className="bg-white rounded-[14px] p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span>🐷</span>
-                  <span className="text-[14px] font-semibold text-[#3d2fa0]">Ahorro</span>
-                </div>
-                <span className="text-[13px] font-bold text-[#5a4bc3]">Meta: {fmt(Math.round(income*savingsPct/100))}/mes</span>
-              </div>
-              <p className="text-[12px] text-[#8c887d] mt-1">Separa {fmt(Math.round(income*savingsPct/100))} este mes para tu meta de ahorro</p>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Resumen + Mejora */}
-        <div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <span>💼</span>
-            <h2 className="text-[13px] font-bold uppercase tracking-wide text-[#47433d]">Resumen + Mejora</h2>
-          </div>
-          <div className="rounded-[18px] bg-[#f4efe3] p-4">
-  <p className="text-[14px] font-semibold text-[#624b20]">
-    {consejosPersonalizados ? '🤖 Análisis de tus gastos' : 'Consejo de la IA'}
-  </p>
-  {consejosPersonalizados ? (
-    <div className="space-y-2 mt-1">
-      {consejosPersonalizados.map((c, i) => (
-        <p key={i} className="text-[13px] leading-5 text-[#5b564d]">{c}</p>
-      ))}
-    </div>
-  ) : (
-    <p className="mt-1 text-[13px] leading-5 text-[#5b564d]">{tip1}</p>
-  )}
-</div>
-        </div>
-
         {/* Gastos por categoría */}
-        <div className="rounded-[22px] border border-[#ebe6db] bg-[#fcfbf8] p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <span>📉</span>
-            <h2 className="text-[13px] font-bold uppercase tracking-wide text-[#47433d]">Gastos por categoría</h2>
-          </div>
+        <div className="rounded-[18px] bg-white border border-[#ebe6db] p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#9a9590] mb-3">Gastos por categoría</p>
           <div className="space-y-3">
-            {orderedCategories.map(({cat,amount})=>{
-              const width = amount>0?Math.max(8,(amount/highestCat)*100):8
+            {orderedCategories.filter(c=>c.amount>0).map(({cat,amount})=>{
+              const width = Math.max(8,(amount/highestCat)*100)
               return (
                 <div key={cat}>
-                  <div className="flex justify-between text-[14px] mb-1">
+                  <div className="flex justify-between text-[13px] mb-1">
                     <span className="text-[#403c37]">{cat}</span>
-                    <span className="font-medium text-[#2f2d29]">{fmt(amount)}</span>
+                    <span className="font-semibold text-[#2f2d29]">{fmt(amount)}</span>
                   </div>
-                  <div className="h-2 rounded-full bg-[#ece7dd]">
-                    <div className="h-2 rounded-full transition-all" style={{width:`${width}%`,backgroundColor:amount>0?getCategoryColor(cat,customCats):'#d7d2c7'}}/>
+                  <div className="h-2 rounded-full bg-[#f0ebe0]">
+                    <div className="h-2 rounded-full transition-all" style={{width:`${width}%`,backgroundColor:getCategoryColor(cat,customCats)}}/>
                   </div>
                 </div>
               )
@@ -542,19 +437,29 @@ await enviarNotifSiCorresponde(
           </div>
         </div>
 
-        {/* Consejo IA */}
-        <div className="rounded-[22px] border border-[#cfe5df] bg-[#dbefea] p-4">
-          <div className="flex items-center gap-2 mb-2 text-[#2b5d58]">
-            <span>💡</span>
-            <h2 className="text-[14px] font-bold">Consejo de la IA</h2>
-          </div>
-          <p className="text-[14px] leading-6 text-[#24514c]">{tip2}</p>
-          {activeGoal && (
-            <div className="mt-3 flex items-center justify-between rounded-[18px] bg-white/65 px-4 py-3 text-[13px] text-[#375d56]">
-              <span>🎯 {activeGoal.name}</span>
-              <span className="font-semibold">✨ {goalPct}%</span>
+        {/* Insight IA */}
+        <div className="rounded-[18px] bg-[#edf7f2] border border-[#bbf7d0] p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-6 h-6 rounded-full bg-[#5a4bc3] flex items-center justify-center flex-shrink-0">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </div>
-          )}
+            <p className="text-[12px] font-bold text-[#166534]">Finti IA · Análisis del mes</p>
+          </div>
+          <div className="bg-white rounded-[12px] rounded-tl-[4px] p-3 border border-[#bbf7d0]">
+            {consejosPersonalizados ? (
+              <div className="space-y-1.5">
+                {consejosPersonalizados.map((c,i)=>(
+                  <p key={i} className="text-[12px] leading-5 text-[#1f1f1f]">{c}</p>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[12px] leading-5 text-[#1f1f1f]">{tip}</p>
+            )}
+          </div>
+          <Link href="/ia" className="mt-3 flex items-center justify-center gap-2 bg-[#5a4bc3] rounded-[12px] py-2.5">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span className="text-[12px] font-bold text-white">Preguntarle a Finti IA</span>
+          </Link>
         </div>
 
       </div>
@@ -576,29 +481,13 @@ await enviarNotifSiCorresponde(
         </div>
       </div>
 
-     {/* Burbuja IA */}
-      <Link href="/ia" data-tour="ia" className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-[#5a4bc3] flex items-center justify-center shadow-lg">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      </Link>
-
       <TourGuide
         tourKey="dashboard"
         steps={[
-          {
-            target: 'resumen',
-            title: '💰 Tu resumen financiero',
-            message: 'Aquí ves cuánto gastaste este mes y cuánto te queda disponible de tu ingreso.',
-            position: 'bottom'
-          },
-          {
-            target: 'ia',
-            title: '🤖 Asistente IA',
-            message: 'Pregúntale cualquier cosa sobre tus finanzas. Analiza tus gastos y te da consejos personalizados.',
-            position: 'top'
-          }
+          { target:'resumen', title:'💰 Tu resumen financiero', message:'Aquí ves cuánto gastaste este mes y cuánto te queda disponible.', position:'bottom' },
+          { target:'ia', title:'🤖 Asistente IA', message:'Pregúntale cualquier cosa sobre tus finanzas.', position:'top' }
         ]}
       />
     </div>
   )
 }
-
