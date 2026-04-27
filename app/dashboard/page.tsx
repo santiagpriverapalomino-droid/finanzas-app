@@ -267,7 +267,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[#f5f3ee]">
 
       {/* ── HEADER HERO ── */}
-      <div className="bg-[#5a4bc3] px-4 pt-10 pb-10">
+      <div className="bg-[#3d2f9f] px-4 pt-10 pb-10">
         <div className="flex items-start justify-between mb-5">
           <div>
             <p className="text-[11px] font-semibold tracking-widest text-white/55 uppercase">{firstName}</p>
@@ -324,7 +324,7 @@ export default function Dashboard() {
           </div>
           <div className="rounded-[18px] bg-white border border-[#ebe6db] p-4">
             <p className="text-[10px] font-bold uppercase tracking-wide text-[#9a9590] mb-1">Disponible</p>
-            <p className="text-[20px] font-bold text-[#1a7a45]">{fmt(disponible)}</p>
+            <p className="text-[20px] font-bold text-[#16a34a]">{fmt(disponible)}</p>
           </div>
         </div>
 
@@ -335,8 +335,8 @@ export default function Dashboard() {
               <p className="text-[13px] font-bold text-[#1f1f1f]">🎯 {activeGoal.name}</p>
               <p className="text-[13px] font-bold text-[#5a4bc3]">{goalPct}%</p>
             </div>
-            <div className="h-2 bg-[#ede9ff] rounded-full overflow-hidden">
-              <div className="h-2 bg-[#5a4bc3] rounded-full transition-all" style={{width:`${goalPct}%`}}/>
+            <div className="h-2 bg-[#e8f5ee] rounded-full overflow-hidden">
+              <div className="h-2 bg-[#16a34a] rounded-full transition-all" style={{width:`${goalPct}%`}}/>
             </div>
             <p className="text-[11px] text-[#9a9590] mt-1.5">{fmt(activeGoal.saved_amount)} de {fmt(activeGoal.target_amount)} ahorrados</p>
           </div>
@@ -344,7 +344,7 @@ export default function Dashboard() {
 
         {/* Racha */}
         {racha > 0 && (
-          <div className="rounded-[18px] bg-[#5a4bc3] p-4">
+          <div className="rounded-[18px] bg-[#3d2f9f] p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wide text-white/60 mb-1">Racha activa</p>

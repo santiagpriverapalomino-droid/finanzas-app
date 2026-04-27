@@ -87,7 +87,7 @@ export default function Onboarding() {
       {step === 0 && (
         <div className="flex-1 flex flex-col">
           {/* Hero */}
-          <div className="bg-[#5a4bc3] px-6 pt-16 pb-12">
+          <div className="bg-[#3d2f9f] px-6 pt-16 pb-12">
             <div className="w-16 h-16 rounded-[20px] bg-white/15 flex items-center justify-center mb-5">
               <svg width="36" height="36" viewBox="0 0 44 44" fill="none">
                 <polyline points="4,36 14,20 22,28 32,10 40,18" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -132,7 +132,7 @@ export default function Onboarding() {
       {/* ── PASO 1: Ingreso ── */}
       {step === 1 && (
         <div className="flex-1 flex flex-col">
-          <div className="bg-[#5a4bc3] px-6 pt-16 pb-12">
+          <div className="bg-[#3d2f9f] px-6 pt-16 pb-12">
             <p className="text-[11px] font-bold text-white/50 uppercase tracking-widest mb-3">Paso 1 de 3</p>
             <h2 className="text-[26px] font-bold text-white mb-2">Tu ingreso mensual</h2>
             <p className="text-[14px] text-white/70">Esto nos ayuda a calcular tu presupuesto y alertas de gasto.</p>
@@ -177,7 +177,7 @@ export default function Onboarding() {
       {/* ── PASO 2: Primer sueldo ── */}
       {step === 2 && (
         <div className="flex-1 flex flex-col">
-          <div className="bg-[#5a4bc3] px-6 pt-16 pb-12">
+          <div className="bg-[#3d2f9f] px-6 pt-16 pb-12">
             <p className="text-[11px] font-bold text-white/50 uppercase tracking-widest mb-3">Paso 2 de 3</p>
             <h2 className="text-[26px] font-bold text-white mb-2">¿Eres nuevo en finanzas?</h2>
             <p className="text-[14px] text-white/70">Te activamos el plan 50/30/20 para que empieces con el pie derecho.</p>
@@ -233,7 +233,7 @@ export default function Onboarding() {
       {/* ── PASO 3: Tutorial ── */}
       {step === 3 && (
         <div className="flex-1 flex flex-col">
-          <div className="bg-[#5a4bc3] px-6 pt-16 pb-12">
+          <div className="bg-[#3d2f9f] px-6 pt-16 pb-12">
             <p className="text-[11px] font-bold text-white/50 uppercase tracking-widest mb-3">Paso 3 de 3</p>
             <h2 className="text-[26px] font-bold text-white mb-2">¿Cómo funciona Finti?</h2>
             <p className="text-[14px] text-white/70">Conoce todo lo que puedes hacer.</p>

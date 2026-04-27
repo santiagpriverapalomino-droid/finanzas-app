@@ -193,8 +193,8 @@ cargarNoticias()
 
   return (
     <div className="min-h-screen bg-[#f5f3ee]">
-      <div className="bg-[#5a4bc3] px-4 pt-10 pb-10">
-        <div className="flex items-start justify-between mb-5">
+<div className="bg-[#3d2f9f] px-4 pt-10 pb-10">
+          <div className="flex items-start justify-between mb-5">
           <div>
             <p className="text-[11px] font-semibold tracking-widest text-white/55 uppercase">{firstName}</p>
             <p className="text-[14px] font-bold text-white">Inversiones</p>

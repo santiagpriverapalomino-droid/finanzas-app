@@ -87,7 +87,7 @@ export default function Metas() {
     <div className="min-h-screen bg-[#f5f3ee]">
 
       {/* ── HEADER HERO ── */}
-      <div className="bg-[#5a4bc3] px-4 pt-10 pb-10">
+      <div className="bg-[#3d2f9f] px-4 pt-10 pb-10">
         <div className="flex items-start justify-between mb-5">
           <div>
             <p className="text-[11px] font-semibold tracking-widest text-white/55 uppercase">{firstName}</p>
@@ -140,8 +140,8 @@ export default function Metas() {
                 </div>
               </div>
 
-              <div className="h-2.5 rounded-full bg-[#ede9ff] mb-2 overflow-hidden">
-                <div className="h-2.5 rounded-full bg-[#5a4bc3] transition-all" style={{ width: `${pct}%` }} />
+              <div className="h-2.5 rounded-full bg-[#e8f5ee] mb-2 overflow-hidden">
+                <div className="h-2.5 rounded-full bg-[#16a34a] transition-all" style={{ width: `${pct}%` }} />
               </div>
               <div className="flex justify-between text-[12px] mb-4">
                 <span className="text-[#9a9590]">S/{goal.saved_amount.toLocaleString()} de S/{goal.target_amount.toLocaleString()}</span>
