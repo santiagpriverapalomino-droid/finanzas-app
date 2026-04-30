@@ -124,7 +124,9 @@ export default function Dashboard() {
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
   const [racha, setRacha] = useState(0)
-  const [logro, setLogro] = useState<string | null>(null)
+const [logro, setLogro] = useState<string | null>(null)
+const [alertaIA, setAlertaIA] = useState<string | null>(null)
+const [cargandoAlerta, setCargandoAlerta] = useState(false)
 
   useEffect(() => {
     const init = async () => {
@@ -181,6 +183,47 @@ export default function Dashboard() {
       }
 
       await enviarNotif(user.id, prof?.monthly_income||0, (exp||[]).reduce((s:number,e:any)=>s+Number(e.amount),0), prof?.salary_day||0, g||[])
+     // Generar alerta IA proactiva
+try {
+  const totalG = (exp || []).reduce((s: number, e: any) => s + Number(e.amount), 0)
+  const ingreso = prof?.monthly_income || 0
+  const hoyDia = new Date().getDate()
+  const diasEnMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+  const gastoEsperado = Math.round(ingreso * hoyDia / diasEnMes)
+  const nombre = user.user_metadata?.full_name?.split(' ')[0] || 'ahí'
+
+  const catMap: Record<string, number> = {}
+  ;(exp || []).forEach((e: any) => { catMap[e.category] = (catMap[e.category] || 0) + Number(e.amount) })
+  const topCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([cat, val]) => `${cat}: S/${Math.round(val)}`).join(', ')
+
+  const prompt = `Genera UNA alerta financiera corta y directa para ${nombre}. Máximo 2 oraciones. Sin emojis excesivos. Sin markdown. Habla como un amigo.
+
+Datos:
+- Día ${hoyDia} de ${diasEnMes} del mes
+- Gastado: S/${Math.round(totalG)} de S/${ingreso} (${Math.round(totalG/ingreso*100)}%)
+- Gasto esperado a esta altura: S/${gastoEsperado}
+- Va ${totalG <= gastoEsperado ? 'BIEN (menos de lo esperado)' : 'MAL (más de lo esperado)'}
+- Top categorías: ${topCats}
+- Metas activas: ${(g || []).length}
+
+Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alértalo con números concretos y una acción específica.`
+
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      pregunta: prompt,
+      resumenGastos: '',
+      contextoUsuario: '',
+      historial: [],
+      nombreUsuario: nombre
+    })
+  })
+  const data = await res.json()
+  if (data.respuesta) setAlertaIA(data.respuesta)
+} catch {
+  // Si falla, usar consejos estáticos
+}
       setLoading(false)
     }
     init()
@@ -446,15 +489,17 @@ export default function Dashboard() {
             <p className="text-[12px] font-bold text-[#166534]">Finti IA · Análisis del mes</p>
           </div>
           <div className="bg-white rounded-[12px] rounded-tl-[4px] p-3 border border-[#bbf7d0]">
-            {consejosPersonalizados ? (
-              <div className="space-y-1.5">
-                {consejosPersonalizados.map((c,i)=>(
-                  <p key={i} className="text-[12px] leading-5 text-[#1f1f1f]">{c}</p>
-                ))}
-              </div>
-            ) : (
-              <p className="text-[12px] leading-5 text-[#1f1f1f]">{tip}</p>
-            )}
+            {alertaIA ? (
+  <p className="text-[12px] leading-5 text-[#1f1f1f]">{alertaIA}</p>
+) : consejosPersonalizados ? (
+  <div className="space-y-1.5">
+    {consejosPersonalizados.map((c,i)=>(
+      <p key={i} className="text-[12px] leading-5 text-[#1f1f1f]">{c}</p>
+    ))}
+  </div>
+) : (
+  <p className="text-[12px] leading-5 text-[#1f1f1f]">{tip}</p>
+)}
           </div>
           <Link href="/ia" className="mt-3 flex items-center justify-center gap-2 bg-[#5a4bc3] rounded-[12px] py-2.5">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
