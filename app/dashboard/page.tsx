@@ -124,9 +124,9 @@ export default function Dashboard() {
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
   const [racha, setRacha] = useState(0)
-const [logro, setLogro] = useState<string | null>(null)
-const [alertaIA, setAlertaIA] = useState<string | null>(null)
-const [cargandoAlerta, setCargandoAlerta] = useState(false)
+  const [logro, setLogro] = useState<string | null>(null)
+  const [alertaIA, setAlertaIA] = useState<string | null>(null)
+  const [cargandoAlerta, setCargandoAlerta] = useState(true)
 
   useEffect(() => {
     const init = async () => {
@@ -183,20 +183,21 @@ const [cargandoAlerta, setCargandoAlerta] = useState(false)
       }
 
       await enviarNotif(user.id, prof?.monthly_income||0, (exp||[]).reduce((s:number,e:any)=>s+Number(e.amount),0), prof?.salary_day||0, g||[])
-     // Generar alerta IA proactiva
-try {
-  const totalG = (exp || []).reduce((s: number, e: any) => s + Number(e.amount), 0)
-  const ingreso = prof?.monthly_income || 0
-  const hoyDia = new Date().getDate()
-  const diasEnMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
-  const gastoEsperado = Math.round(ingreso * hoyDia / diasEnMes)
-  const nombre = user.user_metadata?.full_name?.split(' ')[0] || 'ahí'
 
-  const catMap: Record<string, number> = {}
-  ;(exp || []).forEach((e: any) => { catMap[e.category] = (catMap[e.category] || 0) + Number(e.amount) })
-  const topCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([cat, val]) => `${cat}: S/${Math.round(val)}`).join(', ')
+      // Generar alerta IA proactiva
+      try {
+        const totalG = (exp || []).reduce((s: number, e: any) => s + Number(e.amount), 0)
+        const ingreso = prof?.monthly_income || 0
+        const hoyDia = new Date().getDate()
+        const diasEnMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+        const gastoEsperado = Math.round(ingreso * hoyDia / diasEnMes)
+        const nombre = user.user_metadata?.full_name?.split(' ')[0] || 'ahí'
 
-  const prompt = `Genera UNA alerta financiera corta y directa para ${nombre}. Máximo 2 oraciones. Sin emojis excesivos. Sin markdown. Habla como un amigo.
+        const catMap: Record<string, number> = {}
+        ;(exp || []).forEach((e: any) => { catMap[e.category] = (catMap[e.category] || 0) + Number(e.amount) })
+        const topCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([cat, val]) => `${cat}: S/${Math.round(val)}`).join(', ')
+
+        const prompt = `Genera UNA alerta financiera corta y directa para ${nombre}. Máximo 2 oraciones. Sin emojis excesivos. Sin markdown. Habla como un amigo.
 
 Datos:
 - Día ${hoyDia} de ${diasEnMes} del mes
@@ -208,22 +209,23 @@ Datos:
 
 Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alértalo con números concretos y una acción específica.`
 
-  const res = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      pregunta: prompt,
-      resumenGastos: '',
-      contextoUsuario: '',
-      historial: [],
-      nombreUsuario: nombre
-    })
-  })
-  const data = await res.json()
-  if (data.respuesta) setAlertaIA(data.respuesta)
-} catch {
-  // Si falla, usar consejos estáticos
-}
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pregunta: prompt,
+            resumenGastos: '',
+            contextoUsuario: '',
+            historial: [],
+            nombreUsuario: nombre
+          })
+        })
+        const data = await res.json()
+        if (data.respuesta) setAlertaIA(data.respuesta)
+      } catch {
+        // Si falla usar consejos estáticos
+      }
+      setCargandoAlerta(false)
       setLoading(false)
     }
     init()
@@ -308,8 +310,6 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
 
   return (
     <div className="min-h-screen bg-[#f5f3ee]">
-
-      {/* ── HEADER HERO ── */}
       <div className="bg-[#3d2f9f] px-4 pt-10 pb-10">
         <div className="flex items-start justify-between mb-5">
           <div>
@@ -333,10 +333,8 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
         </div>
       </div>
 
-      {/* ── BODY ── */}
       <div className="bg-[#f5f3ee] rounded-t-[28px] -mt-5 px-4 pt-5 pb-28 space-y-4">
 
-        {/* Alertas */}
         {spendingRatio > 0.8 && (
           <div className="flex items-center gap-3 rounded-[16px] border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
             <span>⚠️</span><span>Gastaste más del 80% de tu presupuesto este mes.</span>
@@ -348,7 +346,6 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
           </div>
         )}
 
-        {/* Plan activo */}
         {isFirstSalary && (
           <div className="flex items-center gap-3 rounded-[16px] border border-[#c8bbf5] bg-[#ede9ff] px-4 py-3">
             <div className="w-8 h-8 rounded-full bg-[#5a4bc3] flex items-center justify-center text-sm">⚡</div>
@@ -359,7 +356,6 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
           </div>
         )}
 
-        {/* Cards resumen */}
         <div className="grid grid-cols-2 gap-3" data-tour="resumen">
           <div className="rounded-[18px] bg-white border border-[#ebe6db] p-4">
             <p className="text-[10px] font-bold uppercase tracking-wide text-[#9a9590] mb-1">Gastado</p>
@@ -371,7 +367,6 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
           </div>
         </div>
 
-        {/* Meta activa */}
         {activeGoal && (
           <div className="rounded-[18px] bg-white border border-[#ebe6db] p-4">
             <div className="flex items-center justify-between mb-2">
@@ -385,7 +380,6 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
           </div>
         )}
 
-        {/* Racha */}
         {racha > 0 && (
           <div className="rounded-[18px] bg-[#3d2f9f] p-4">
             <div className="flex items-center justify-between">
@@ -411,10 +405,8 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
           </div>
         )}
 
-        {/* Donut chart */}
         <DonutChart expenses={expenses} customCats={customCats} />
 
-        {/* Esta semana */}
         <div className="rounded-[18px] bg-white border border-[#ebe6db] p-4">
           <div className="flex items-center justify-between mb-3">
             <p className="text-[11px] font-bold uppercase tracking-wide text-[#9a9590]">Esta semana</p>
@@ -439,7 +431,6 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
           </div>
         </div>
 
-        {/* Plan 50/30/20 */}
         {isFirstSalary && income > 0 && (
           <div className="rounded-[18px] bg-[#ede9ff] border border-[#c8bbf5] p-4">
             <p className="text-[11px] font-bold uppercase tracking-wide text-[#3d2fa0] mb-3">Tu plan {needsPct}/{wantsPct}/{savingsPct}</p>
@@ -459,7 +450,6 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
           </div>
         )}
 
-        {/* Gastos por categoría */}
         <div className="rounded-[18px] bg-white border border-[#ebe6db] p-4">
           <p className="text-[11px] font-bold uppercase tracking-wide text-[#9a9590] mb-3">Gastos por categoría</p>
           <div className="space-y-3">
@@ -489,17 +479,19 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
             <p className="text-[12px] font-bold text-[#166534]">Finti IA · Análisis del mes</p>
           </div>
           <div className="bg-white rounded-[12px] rounded-tl-[4px] p-3 border border-[#bbf7d0]">
-            {alertaIA ? (
-  <p className="text-[12px] leading-5 text-[#1f1f1f]">{alertaIA}</p>
-) : consejosPersonalizados ? (
-  <div className="space-y-1.5">
-    {consejosPersonalizados.map((c,i)=>(
-      <p key={i} className="text-[12px] leading-5 text-[#1f1f1f]">{c}</p>
-    ))}
-  </div>
-) : (
-  <p className="text-[12px] leading-5 text-[#1f1f1f]">{tip}</p>
-)}
+            {cargandoAlerta ? (
+              <p className="text-[12px] leading-5 text-[#8c887d] italic">Analizando tu situación...</p>
+            ) : alertaIA ? (
+              <p className="text-[12px] leading-5 text-[#1f1f1f]">{alertaIA}</p>
+            ) : consejosPersonalizados ? (
+              <div className="space-y-1.5">
+                {consejosPersonalizados.map((c,i)=>(
+                  <p key={i} className="text-[12px] leading-5 text-[#1f1f1f]">{c}</p>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[12px] leading-5 text-[#1f1f1f]">{tip}</p>
+            )}
           </div>
           <Link href="/ia" className="mt-3 flex items-center justify-center gap-2 bg-[#5a4bc3] rounded-[12px] py-2.5">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -509,7 +501,6 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
 
       </div>
 
-      {/* Navbar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#ece8df]">
         <div className="max-w-md mx-auto flex">
           {[
