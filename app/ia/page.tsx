@@ -98,7 +98,7 @@ export default function ChatIA() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ pregunta: texto, resumenGastos: resumen, contextoUsuario, historial: historialApi })      })
+  body: JSON.stringify({ pregunta: texto, resumenGastos: resumen, contextoUsuario, historial: historialApi, nombreUsuario: user?.user_metadata?.full_name?.split(' ')[0] || 'amigo' })      })
       const { respuesta } = await res.json()
       setMensajes(prev => [...prev, { rol: 'ia', texto: respuesta }])
       setHistorialApi(prev => [
