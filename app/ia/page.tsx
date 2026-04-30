@@ -83,13 +83,20 @@ export default function ChatIA() {
           })()
         : null
 
-      const contextoUsuario = [
-        ingreso > 0 ? `Ingreso mensual: S/${ingreso}` : null,
-        ingreso > 0 ? `Disponible este mes: S/${disponible.toFixed(0)}` : null,
-        profile?.salary_day ? `Día de cobro: ${profile.salary_day}` : null,
-        profile?.needs_percent ? `Plan de distribución: ${profile.needs_percent}% necesidades, ${profile.wants_percent}% gustos, ${profile.savings_percent}% ahorro` : null,
-        resumenHistorial ? `Gastos últimos 3 meses: ${resumenHistorial}` : null,
-      ].filter(Boolean).join('\n')
+      const hoyDia = new Date().getDate()
+const diasEnMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+const gastoEsperadoAFecha = ingreso > 0 ? Math.round(ingreso * hoyDia / diasEnMes) : 0
+
+const contextoUsuario = [
+  ingreso > 0 ? `Ingreso mensual: S/${ingreso}` : null,
+  `Hoy es el día ${hoyDia} de ${diasEnMes} del mes (faltan ${diasEnMes - hoyDia} días)`,
+  ingreso > 0 ? `Total gastado hasta hoy: S/${totalMes.toFixed(0)} de S/${ingreso} (${Math.round(totalMes/ingreso*100)}% del ingreso mensual)` : null,
+  ingreso > 0 ? `Gasto esperado a esta altura del mes: S/${gastoEsperadoAFecha} — el usuario lleva ${totalMes <= gastoEsperadoAFecha ? 'MENOS de lo esperado (va bien)' : 'MÁS de lo esperado (ojo con eso)'}` : null,
+  ingreso > 0 ? `Disponible estimado al fin de mes: S/${disponible.toFixed(0)}` : null,
+  profile?.salary_day ? `Día de cobro: ${profile.salary_day}` : null,
+  profile?.needs_percent ? `Plan de distribución: ${profile.needs_percent}% necesidades, ${profile.wants_percent}% gustos, ${profile.savings_percent}% ahorro` : null,
+  resumenHistorial ? `Gastos últimos 3 meses: ${resumenHistorial}` : null,
+].filter(Boolean).join('\n')
     const msgUsuario = resumen
       ? `Mis gastos de este mes:\n${resumen}\n\nPregunta: ${texto}`
       : texto
