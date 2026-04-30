@@ -176,9 +176,10 @@ await new Promise<void>(resolve => {
 const reg = await navigator.serviceWorker.ready
                 const existing = await reg.pushManager.getSubscription()
 const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
+const keyData = Uint8Array.from(atob(vapidKey.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0))
 const sub = existing || await reg.pushManager.subscribe({ 
   userVisibleOnly: true, 
-  applicationServerKey: vapidKey
+  applicationServerKey: keyData
 })
 const subJson = sub.toJSON()
 const res = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id, subscription: subJson }) })
