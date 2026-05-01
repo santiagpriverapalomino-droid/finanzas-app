@@ -40,18 +40,17 @@ function stripHtml(html: string): string {
 
 async function extraerConIA(subject: string, body: string, date: string): Promise<any | null> {
   try {
-    const prompt = `Eres un extractor de gastos bancarios peruanos. Analiza este email.
+    const prompt = `Extrae el gasto de este email bancario peruano.
 
 Asunto: ${subject}
-Fecha: ${date}
 Contenido: ${body.slice(0, 500)}
 
 Responde SOLO con JSON:
-{"es_gasto":true,"monto":50.19,"moneda":"PEN","descripcion":"RAPPI PERU","categoria":"Alimentación","fecha":"2024-04-23"}
+{"es_gasto":true,"monto":50.19,"moneda":"PEN","descripcion":"RAPPI PERU","categoria":"Alimentación"}
 
-Categorías válidas: Alimentación, Transporte, Entretenimiento, Compras, Servicios, Salud
-Si es devolución, reembolso o anulación responde: {"es_gasto":false}
-Si no hay monto claro responde: {"es_gasto":false}`
+Categorías: Alimentación, Transporte, Entretenimiento, Compras, Servicios, Salud
+Si es devolución/reembolso/anulación: {"es_gasto":false}
+Si no hay monto claro: {"es_gasto":false}`
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
@@ -89,8 +88,17 @@ async function procesarEmail(msgId: string, accessToken: string): Promise<any | 
   const subject = msgData.payload?.headers?.find((h: any) => h.name === 'Subject')?.value || ''
   const date = msgData.payload?.headers?.find((h: any) => h.name === 'Date')?.value || ''
 
-  return extraerConIA(subject, body, date)
-}
+const resultado = await extraerConIA(subject, body, date)
+  if (!resultado) return null
+  // Usar siempre la fecha del header del email, no la que dice la IA
+  let fecha = new Date().toISOString().split('T')[0]
+  try {
+    const d = new Date(date)
+    if (!isNaN(d.getTime())) {
+      fecha = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    }
+  } catch {}
+  return { ...resultado, fecha }}
 
 export async function POST(req: Request) {
   try {
