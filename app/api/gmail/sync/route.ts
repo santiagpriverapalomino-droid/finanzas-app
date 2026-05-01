@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import Anthropic from '@anthropic-ai/sdk'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 async function refreshToken(refresh_token: string) {
   const res = await fetch('https://oauth2.googleapis.com/token', {
@@ -37,6 +34,51 @@ function stripHtml(html: string): string {
     .trim()
 }
 
+function extraerGastoBCP(subject: string, body: string, dateStr: string): any | null {
+  // Extraer monto — busca patrones como "S/ 50.19" o "S/50.19" o "USD 20.00"
+  const montoMatch = body.match(/S\/\s*([\d,]+\.?\d*)/i) || subject.match(/S\/\s*([\d,]+\.?\d*)/i)
+  const montoUSDMatch = body.match(/USD\s*([\d,]+\.?\d*)/i)
+  
+  if (!montoMatch && !montoUSDMatch) return null
+  
+  const moneda = montoUSDMatch ? 'USD' : 'PEN'
+  const montoRaw = montoUSDMatch ? montoUSDMatch[1] : montoMatch![1]
+  const monto = parseFloat(montoRaw.replace(',', ''))
+  
+  if (!monto || monto <= 0) return null
+
+  // Extraer comercio — busca después de "en " o "comercio:" en el subject o body
+  let descripcion = 'Gasto BCP'
+  const comercioMatch = 
+    subject.match(/en\s+([A-Z][A-Z\s\*\.\-]+?)(?:\.|$)/i) ||
+    body.match(/en\s+([A-Z][A-Z\s\*\.\-]{3,40}?)(?:\s+por|\s+el|\s+fecha|\.)/i) ||
+    body.match(/Comercio[:\s]+([^\n\r]{3,40})/i)
+  
+  if (comercioMatch) {
+    descripcion = comercioMatch[1].trim()
+  }
+
+  // Extraer fecha del header Date
+  let fecha = new Date().toISOString().split('T')[0]
+  try {
+    const d = new Date(dateStr)
+    if (!isNaN(d.getTime())) {
+      fecha = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    }
+  } catch {}
+
+  // Categoría básica por comercio
+  const desc = descripcion.toLowerCase()
+  let categoria = 'Compras'
+  if (desc.includes('rappi') || desc.includes('uber eats') || desc.includes('delivery') || desc.includes('kfc') || desc.includes('mcdonalds') || desc.includes('bembos')) categoria = 'Alimentación'
+  else if (desc.includes('uber') || desc.includes('cabify') || desc.includes('indriver') || desc.includes('rides') || desc.includes('taxi')) categoria = 'Transporte'
+  else if (desc.includes('netflix') || desc.includes('spotify') || desc.includes('disney') || desc.includes('hbo') || desc.includes('youtube')) categoria = 'Entretenimiento'
+  else if (desc.includes('farmacia') || desc.includes('inkafarma') || desc.includes('mifarma') || desc.includes('clinica') || desc.includes('doctor')) categoria = 'Salud'
+  else if (desc.includes('smart fit') || desc.includes('gimnasio') || desc.includes('gym')) categoria = 'Salud y Fitness'
+
+  return { es_gasto: true, monto, moneda, descripcion, categoria, fecha }
+}
+
 export async function POST(req: Request) {
   try {
     const { userId } = await req.json()
@@ -58,7 +100,7 @@ export async function POST(req: Request) {
     }
 
     const isFirstSync = !profile.gmail_first_sync_done
-    const maxEmails = isFirstSync ? 100 : 10
+    const maxEmails = isFirstSync ? 20 : 5
     const query = encodeURIComponent('from:notificacionesbcp.com.pe')
 
     const gmailRes = await fetch(
@@ -83,56 +125,20 @@ export async function POST(req: Request) {
       let rawBody = ''
       const parts = msgData.payload?.parts || [msgData.payload]
       for (const part of parts) {
-        if (part?.body?.data) {
-          rawBody += Buffer.from(part.body.data, 'base64').toString('utf-8')
-        }
+        if (part?.body?.data) rawBody += Buffer.from(part.body.data, 'base64').toString('utf-8')
         if (part?.parts) {
           for (const subpart of part.parts) {
-            if (subpart?.body?.data) {
-              rawBody += Buffer.from(subpart.body.data, 'base64').toString('utf-8')
-            }
+            if (subpart?.body?.data) rawBody += Buffer.from(subpart.body.data, 'base64').toString('utf-8')
           }
         }
       }
 
-      const body = stripHtml(rawBody).slice(0, 800)
+      const body = stripHtml(rawBody).slice(0, 1000)
       const subject = msgData.payload?.headers?.find((h: any) => h.name === 'Subject')?.value || ''
       const date = msgData.payload?.headers?.find((h: any) => h.name === 'Date')?.value || ''
 
-      const prompt = `Eres un extractor de gastos bancarios peruanos. Analiza este email del BCP.
-
-Asunto: ${subject}
-Fecha: ${date}
-Contenido: ${body}
-
-Extrae el gasto y responde SOLO con JSON, sin texto adicional:
-{
-  "es_gasto": true,
-  "monto": 50.19,
-  "moneda": "PEN",
-  "descripcion": "RAPPI PERU",
-  "categoria": "Alimentación",
-  "fecha": "2024-04-23"
-}
-
-Si no hay monto claro, responde: {"es_gasto": false}`
-
-      const response = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 200,
-        messages: [{ role: 'user', content: prompt }]
-      })
-
-      try {
-        const text = response.content[0].type === 'text' ? response.content[0].text : ''
-        const clean = text.replace(/```json|```/g, '').trim()
-        const gasto = JSON.parse(clean)
-        if (gasto.es_gasto && gasto.monto > 0) {
-          gastos.push(gasto)
-        }
-      } catch {
-        // no procesable
-      }
+      const gasto = extraerGastoBCP(subject, body, date)
+      if (gasto) gastos.push(gasto)
     }
 
     let insertados = 0
@@ -159,7 +165,6 @@ Si no hay monto claro, responde: {"es_gasto": false}`
         })
         insertados++
 
-        // Auto-agregar categoría nueva al perfil si no existe
         if (!FIXED.includes(gasto.categoria)) {
           const { data: prof } = await supabase.from('profiles').select('custom_categories').eq('id', userId).single()
           const currentCats: string[] = prof?.custom_categories || []
