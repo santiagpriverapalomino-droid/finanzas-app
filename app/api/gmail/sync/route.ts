@@ -114,8 +114,8 @@ export async function POST(req: Request) {
 
     // Buscar emails del mes actual — BCP y Yape
     const now = new Date()
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
-    const afterDate = `${firstDay.getFullYear()}/${String(firstDay.getMonth()+1).padStart(2,'0')}/${String(firstDay.getDate()).padStart(2,'0')}`
+    const hace30dias = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    const afterDate = `${hace30dias.getFullYear()}/${String(hace30dias.getMonth()+1).padStart(2,'0')}/${String(hace30dias.getDate()).padStart(2,'0')}`
     
     const query = encodeURIComponent(`from:(notificacionesbcp.com.pe OR yape) after:${afterDate}`)
 
