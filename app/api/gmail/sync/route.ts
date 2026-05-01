@@ -1,10 +1,14 @@
+
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import Anthropic from '@anthropic-ai/sdk'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 async function refreshToken(refresh_token: string) {
   const res = await fetch('https://oauth2.googleapis.com/token', {
@@ -34,56 +38,58 @@ function stripHtml(html: string): string {
     .trim()
 }
 
-function extraerGastoBCP(subject: string, body: string, dateStr: string): any | null {
-  // Filtrar devoluciones y reembolsos
-  const textoCompleto = (subject + ' ' + body).toLowerCase()
-  if (textoCompleto.includes('devoluci') || textoCompleto.includes('reembolso') || 
-      textoCompleto.includes('reversa') || textoCompleto.includes('anulaci')) {
+async function extraerConIA(subject: string, body: string, date: string): Promise<any | null> {
+  try {
+    const prompt = `Eres un extractor de gastos bancarios peruanos. Analiza este email.
+
+Asunto: ${subject}
+Fecha: ${date}
+Contenido: ${body.slice(0, 500)}
+
+Responde SOLO con JSON:
+{"es_gasto":true,"monto":50.19,"moneda":"PEN","descripcion":"RAPPI PERU","categoria":"Alimentación","fecha":"2024-04-23"}
+
+Categorías válidas: Alimentación, Transporte, Entretenimiento, Compras, Servicios, Salud
+Si es devolución, reembolso o anulación responde: {"es_gasto":false}
+Si no hay monto claro responde: {"es_gasto":false}`
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 150,
+      messages: [{ role: 'user', content: prompt }]
+    })
+    const text = response.content[0].type === 'text' ? response.content[0].text : ''
+    const clean = text.replace(/```json|```/g, '').trim()
+    const gasto = JSON.parse(clean)
+    return gasto.es_gasto && gasto.monto > 0 ? gasto : null
+  } catch {
     return null
   }
+}
 
-  // Extraer monto — busca patrones como "S/ 50.19" o "S/50.19" o "USD 20.00"
-  const montoMatch = body.match(/S\/\s*([\d,]+\.?\d*)/i) || subject.match(/S\/\s*([\d,]+\.?\d*)/i)
-  const montoUSDMatch = body.match(/USD\s*([\d,]+\.?\d*)/i)
-  
-  if (!montoMatch && !montoUSDMatch) return null
-  
-  const moneda = montoUSDMatch ? 'USD' : 'PEN'
-  const montoRaw = montoUSDMatch ? montoUSDMatch[1] : montoMatch![1]
-  const monto = parseFloat(montoRaw.replace(',', ''))
-  
-  if (!monto || monto <= 0) return null
+async function procesarEmail(msgId: string, accessToken: string): Promise<any | null> {
+  const msgRes = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msgId}?format=full`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  )
+  const msgData = await msgRes.json()
 
-  // Extraer comercio — busca después de "en " o "comercio:" en el subject o body
-  let descripcion = 'Gasto BCP'
-  const comercioMatch = 
-    subject.match(/en\s+([A-Z][A-Z\s\*\.\-]+?)(?:\.|$)/i) ||
-    body.match(/en\s+([A-Z][A-Z\s\*\.\-]{3,40}?)(?:\s+por|\s+el|\s+fecha|\.)/i) ||
-    body.match(/Comercio[:\s]+([^\n\r]{3,40})/i)
-  
-  if (comercioMatch) {
-    descripcion = comercioMatch[1].trim()
+  let rawBody = ''
+  const parts = msgData.payload?.parts || [msgData.payload]
+  for (const part of parts) {
+    if (part?.body?.data) rawBody += Buffer.from(part.body.data, 'base64').toString('utf-8')
+    if (part?.parts) {
+      for (const subpart of part.parts) {
+        if (subpart?.body?.data) rawBody += Buffer.from(subpart.body.data, 'base64').toString('utf-8')
+      }
+    }
   }
 
-  // Extraer fecha del header Date
-  let fecha = new Date().toISOString().split('T')[0]
-  try {
-    const d = new Date(dateStr)
-    if (!isNaN(d.getTime())) {
-      fecha = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-    }
-  } catch {}
+  const body = stripHtml(rawBody)
+  const subject = msgData.payload?.headers?.find((h: any) => h.name === 'Subject')?.value || ''
+  const date = msgData.payload?.headers?.find((h: any) => h.name === 'Date')?.value || ''
 
-  // Categoría básica por comercio
-  const desc = descripcion.toLowerCase()
-  let categoria = 'Compras'
-  if (desc.includes('rappi') || desc.includes('uber eats') || desc.includes('delivery') || desc.includes('kfc') || desc.includes('mcdonalds') || desc.includes('bembos')) categoria = 'Alimentación'
-  else if (desc.includes('uber') || desc.includes('cabify') || desc.includes('indriver') || desc.includes('rides') || desc.includes('taxi')) categoria = 'Transporte'
-  else if (desc.includes('netflix') || desc.includes('spotify') || desc.includes('disney') || desc.includes('hbo') || desc.includes('youtube')) categoria = 'Entretenimiento'
-  else if (desc.includes('farmacia') || desc.includes('inkafarma') || desc.includes('mifarma') || desc.includes('clinica') || desc.includes('doctor')) categoria = 'Salud'
-  else if (desc.includes('smart fit') || desc.includes('gimnasio') || desc.includes('gym')) categoria = 'Salud y Fitness'
-
-  return { es_gasto: true, monto, moneda, descripcion, categoria, fecha }
+  return extraerConIA(subject, body, date)
 }
 
 export async function POST(req: Request) {
@@ -106,50 +112,41 @@ export async function POST(req: Request) {
       await supabase.from('profiles').update({ gmail_access_token: accessToken }).eq('id', userId)
     }
 
-    const isFirstSync = !profile.gmail_first_sync_done
-    const maxEmails = isFirstSync ? 20 : 5
-    const query = encodeURIComponent('from:notificacionesbcp.com.pe')
+    // Buscar emails del mes actual — BCP y Yape
+    const now = new Date()
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    const afterDate = `${firstDay.getFullYear()}/${String(firstDay.getMonth()+1).padStart(2,'0')}/${String(firstDay.getDate()).padStart(2,'0')}`
+    
+    const query = encodeURIComponent(`from:(notificacionesbcp.com.pe OR yape) after:${afterDate}`)
 
     const gmailRes = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=${maxEmails}`,
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=50`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     )
     const gmailData = await gmailRes.json()
 
     if (!gmailData.messages || gmailData.messages.length === 0) {
-      return NextResponse.json({ ok: true, gastos: [], insertados: 0, msg: 'No se encontraron emails' })
+      return NextResponse.json({ ok: true, gastos: 0, insertados: 0, msg: 'Sin emails este mes' })
     }
 
+    // Procesar en lotes de 5 para no saturar rate limit
+    const mensajes = gmailData.messages
     const gastos: any[] = []
 
-    for (const msg of gmailData.messages.slice(0, maxEmails)) {
-      const msgRes = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
+    for (let i = 0; i < mensajes.length; i += 5) {
+      const lote = mensajes.slice(i, i + 5)
+      const resultados = await Promise.all(
+        lote.map((msg: any) => procesarEmail(msg.id, accessToken))
       )
-      const msgData = await msgRes.json()
-
-      let rawBody = ''
-      const parts = msgData.payload?.parts || [msgData.payload]
-      for (const part of parts) {
-        if (part?.body?.data) rawBody += Buffer.from(part.body.data, 'base64').toString('utf-8')
-        if (part?.parts) {
-          for (const subpart of part.parts) {
-            if (subpart?.body?.data) rawBody += Buffer.from(subpart.body.data, 'base64').toString('utf-8')
-          }
-        }
+      gastos.push(...resultados.filter(Boolean))
+      // Pausa entre lotes para no superar rate limit
+      if (i + 5 < mensajes.length) {
+        await new Promise(r => setTimeout(r, 2000))
       }
-
-      const body = stripHtml(rawBody).slice(0, 1000)
-      const subject = msgData.payload?.headers?.find((h: any) => h.name === 'Subject')?.value || ''
-      const date = msgData.payload?.headers?.find((h: any) => h.name === 'Date')?.value || ''
-
-      const gasto = extraerGastoBCP(subject, body, date)
-      if (gasto) gastos.push(gasto)
     }
 
     let insertados = 0
-    const FIXED = ['Alimentación', 'Transporte', 'Entretenimiento', 'Compras', 'Servicios']
+    const FIXED = ['Alimentación', 'Transporte', 'Entretenimiento', 'Compras', 'Servicios', 'Salud']
 
     for (const gasto of gastos) {
       const { data: existing } = await supabase
@@ -184,7 +181,7 @@ export async function POST(req: Request) {
       }
     }
 
-    if (isFirstSync) {
+    if (!profile.gmail_first_sync_done) {
       await supabase.from('profiles').update({ gmail_first_sync_done: true }).eq('id', userId)
     }
 
@@ -194,7 +191,7 @@ export async function POST(req: Request) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
-          title: '💳 Nuevo gasto detectado',
+          title: '💳 Gastos importados',
           body: `Se importaron ${insertados} gasto${insertados > 1 ? 's' : ''} nuevo${insertados > 1 ? 's' : ''} desde tu banco`,
           url: '/gastos'
         })
