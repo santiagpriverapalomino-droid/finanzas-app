@@ -35,6 +35,13 @@ function stripHtml(html: string): string {
 }
 
 function extraerGastoBCP(subject: string, body: string, dateStr: string): any | null {
+  // Filtrar devoluciones y reembolsos
+  const textoCompleto = (subject + ' ' + body).toLowerCase()
+  if (textoCompleto.includes('devoluci') || textoCompleto.includes('reembolso') || 
+      textoCompleto.includes('reversa') || textoCompleto.includes('anulaci')) {
+    return null
+  }
+
   // Extraer monto — busca patrones como "S/ 50.19" o "S/50.19" o "USD 20.00"
   const montoMatch = body.match(/S\/\s*([\d,]+\.?\d*)/i) || subject.match(/S\/\s*([\d,]+\.?\d*)/i)
   const montoUSDMatch = body.match(/USD\s*([\d,]+\.?\d*)/i)
