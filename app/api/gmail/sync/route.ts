@@ -95,9 +95,7 @@ const resultado = await extraerConIA(subject, body, date)
   try {
     const d = new Date(date)
     if (!isNaN(d.getTime())) {
-      // Ajustar a timezone de Perú (GMT-5)
-      const peruTime = new Date(d.getTime() - 5 * 60 * 60 * 1000)
-      fecha = `${peruTime.getFullYear()}-${String(peruTime.getMonth()+1).padStart(2,'0')}-${String(peruTime.getDate()).padStart(2,'0')}`
+      fecha = d.toLocaleDateString('en-CA', { timeZone: 'America/Lima' })
     }
   } catch {}
   return { ...resultado, fecha }}

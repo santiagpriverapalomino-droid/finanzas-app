@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
@@ -37,9 +36,9 @@ function stripHtml(html: string): string {
 
 function extraerGastoRapido(subject: string, body: string, dateStr: string): any | null {
   const texto = (subject + ' ' + body).toLowerCase()
-  
+
   // Filtrar devoluciones
-  if (texto.includes('devoluci') || texto.includes('reembolso') || 
+  if (texto.includes('devoluci') || texto.includes('reembolso') ||
       texto.includes('reversa') || texto.includes('anulaci')) return null
 
   // Extraer monto
@@ -59,12 +58,12 @@ function extraerGastoRapido(subject: string, body: string, dateStr: string): any
     body.match(/en\s+([A-Z][A-Z\s\*\.\-]{3,40}?)(?:\s+por|\s+el|\s+fecha|\.)/i)
   if (comercioMatch) descripcion = comercioMatch[1].trim()
 
-  // Fecha
-  let fecha = new Date().toISOString().split('T')[0]
+  // Fecha con timezone Lima
+  let fecha = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' })
   try {
     const d = new Date(dateStr)
     if (!isNaN(d.getTime())) {
-      fecha = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+      fecha = d.toLocaleDateString('en-CA', { timeZone: 'America/Lima' })
     }
   } catch {}
 
@@ -107,7 +106,7 @@ export async function GET(req: Request) {
       // Solo últimas 2 horas
       const hace2h = new Date(Date.now() - 2 * 60 * 60 * 1000)
       const afterDate = `${hace2h.getFullYear()}/${String(hace2h.getMonth()+1).padStart(2,'0')}/${String(hace2h.getDate()).padStart(2,'0')}`
-      const query = encodeURIComponent(`from:(notificacionesbcp.com.pe OR yape) after:${afterDate}`)
+      const query = encodeURIComponent(`from:(notificacionesbcp.com.pe OR notificaciones@yape.pe) after:${afterDate}`)
 
       const gmailRes = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=5`,
@@ -143,23 +142,23 @@ export async function GET(req: Request) {
         if (!gasto) continue
 
         const { data: existing } = await supabase
-        .from('expenses')
-        .select('id')
-        .eq('user_id', profile.id)
-        .eq('gmail_message_id', msg.id)
-        .single()
+          .from('expenses')
+          .select('id')
+          .eq('user_id', profile.id)
+          .eq('gmail_message_id', msg.id)
+          .single()
 
-      if (!existing) {
-        await supabase.from('expenses').insert({
-          user_id: profile.id,
-          amount: gasto.monto,
-          currency: gasto.moneda,
-          description: gasto.descripcion,
-          category: gasto.categoria,
-          date: gasto.fecha,
-          source: 'gmail',
-          gmail_message_id: msg.id,
-        })
+        if (!existing) {
+          await supabase.from('expenses').insert({
+            user_id: profile.id,
+            amount: gasto.monto,
+            currency: gasto.moneda,
+            description: gasto.descripcion,
+            category: gasto.categoria,
+            date: gasto.fecha,
+            source: 'gmail',
+            gmail_message_id: msg.id,
+          })
           totalInsertados++
 
           await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/push/send`, {

@@ -284,7 +284,7 @@ export default function Gastos() {
       setUser(user)
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       setProfile(prof)
-      const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false })
+      const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false }).order('created_at', { ascending: false })
       setExpenses(exp || [])
       const { data: fixed } = await supabase.from('fixed_expenses').select('*').eq('user_id', user.id).order('created_at')
       setFixedExpenses(fixed || [])
@@ -385,7 +385,7 @@ export default function Gastos() {
       setFixedExpenses(fixed || [])
     } else {
       await supabase.from('expenses').update({ description: editForm.description, amount: parseFloat(editForm.amount), category: editForm.category, date: editForm.date, currency: editForm.currency }).eq('id', editando.id)
-      const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false })
+      const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false }).order('created_at', { ascending: false })
       setExpenses(exp || [])
     }
     setEditando(null)
@@ -660,7 +660,7 @@ export default function Gastos() {
                     for (const g of selArray) {
                       await supabase.from('expenses').insert({ user_id: user.id, description: g.descripcion, amount: g.monto, category: g.categoria, date: g.fecha, currency: 'PEN', is_fixed: false })
                     }
-                    const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false })
+                    const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false }).order('created_at', { ascending: false })
                     setExpenses(exp || [])
                     setGastosImportados([]); setSeleccionados(new Set()); setIsImporting(false); setGuardando(false)
                   }} className="rounded-[14px] bg-[#5a4bc3] py-3 text-[14px] font-bold text-white disabled:opacity-40">
