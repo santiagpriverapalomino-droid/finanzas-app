@@ -142,8 +142,8 @@ export default function Dashboard() {
       setProfile(prof)
 
       const now = new Date()
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-      const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).gte('date', firstDay).order('date', {ascending:false})
+      const hace35dias = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 35).toISOString().split('T')[0]
+      const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).gte('date', hace35dias).order('date', {ascending:false})
       setExpenses(exp || [])
 
       const { data: g } = await supabase.from('goals').select('*').eq('user_id', user.id).order('created_at', {ascending:true})
