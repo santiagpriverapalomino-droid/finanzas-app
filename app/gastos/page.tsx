@@ -214,14 +214,14 @@ function WeeklyBars({ expenses, profile, onDelete, onEdit }: { expenses: Expense
 function MonthView({ expenses, customCats, onDelete, onEdit }: { expenses: Expense[], customCats: string[], onDelete: (id: string) => void, onEdit: (e: Expense) => void }) {
   const now = new Date()
   const monthExpenses = expenses.filter(e => {
-    const d = new Date(e.date)
+    const d = new Date(e.date + 'T12:00:00')
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
   })
   const totalUSD = monthExpenses.filter(e => e.currency === 'USD').reduce((s,e) => s + Number(e.amount), 0)
 
   const weeks: Record<string, Expense[]> = {}
   monthExpenses.forEach(e => {
-    const weekNum = Math.ceil(new Date(e.date).getDate() / 7)
+const weekNum = Math.ceil(new Date(e.date + 'T12:00:00').getDate() / 7)
     const key = `Semana ${weekNum}`
     if (!weeks[key]) weeks[key] = []
     weeks[key].push(e)
@@ -299,7 +299,7 @@ export default function Gastos() {
   const summary = useMemo(() => {
     const now = new Date()
     const month = expenses.filter(e => {
-      const d = new Date(e.date)
+      const d = new Date(e.date + 'T12:00:00')
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
     })
     const totalPEN = month.filter(e => !e.currency || e.currency === 'PEN').reduce((s,e) => s + Number(e.amount), 0)
