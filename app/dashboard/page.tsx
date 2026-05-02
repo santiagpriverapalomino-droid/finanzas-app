@@ -121,6 +121,7 @@ export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [expensesSemana, setExpensesSemana] = useState<Expense[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
   const [racha, setRacha] = useState(0)
@@ -142,9 +143,13 @@ export default function Dashboard() {
       setProfile(prof)
 
       const now = new Date()
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
       const hace35dias = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 35).toISOString().split('T')[0]
-      const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).gte('date', hace35dias).order('date', {ascending:false})
+
+      const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).gte('date', firstDay).order('date', {ascending:false})
+      const { data: expSemana } = await supabase.from('expenses').select('*').eq('user_id', user.id).gte('date', hace35dias).order('date', {ascending:false})
       setExpenses(exp || [])
+      setExpensesSemana(expSemana || [])
 
       const { data: g } = await supabase.from('goals').select('*').eq('user_id', user.id).order('created_at', {ascending:true})
       setGoals(g || [])
@@ -184,7 +189,6 @@ export default function Dashboard() {
 
       await enviarNotif(user.id, prof?.monthly_income||0, (exp||[]).reduce((s:number,e:any)=>s+Number(e.amount),0), prof?.salary_day||0, g||[])
 
-      // Generar alerta IA proactiva
       try {
         const totalG = (exp || []).reduce((s: number, e: any) => s + Number(e.amount), 0)
         const ingreso = prof?.monthly_income || 0
@@ -192,7 +196,6 @@ export default function Dashboard() {
         const diasEnMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
         const gastoEsperado = Math.round(ingreso * hoyDia / diasEnMes)
         const nombre = user.user_metadata?.full_name?.split(' ')[0] || 'ahí'
-
         const catMap: Record<string, number> = {}
         ;(exp || []).forEach((e: any) => { catMap[e.category] = (catMap[e.category] || 0) + Number(e.amount) })
         const topCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([cat, val]) => `${cat}: S/${Math.round(val)}`).join(', ')
@@ -212,19 +215,12 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            pregunta: prompt,
-            resumenGastos: '',
-            contextoUsuario: '',
-            historial: [],
-            nombreUsuario: nombre
-          })
+          body: JSON.stringify({ pregunta: prompt, resumenGastos: '', contextoUsuario: '', historial: [] })
         })
         const data = await res.json()
         if (data.respuesta) setAlertaIA(data.respuesta)
-      } catch {
-        // Si falla usar consejos estáticos
-      }
+      } catch {}
+
       setCargandoAlerta(false)
       setLoading(false)
     }
@@ -258,15 +254,15 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
     const topCat = Object.entries(catMap).sort((a,b) => b[1]-a[1])[0]
     if (ratio > 0.9) consejos.push(`⚠️ Gastaste el ${Math.round(ratio*100)}% de tu ingreso este mes. Revisa tus gastos no esenciales.`)
     else if (ratio > 0.7) consejos.push(`📊 Llevas el ${Math.round(ratio*100)}% del presupuesto. Te quedan S/${Math.round(income - totalGastado)} — úsalos con cuidado.`)
-    else if (ratio < 0.3 && totalGastado > 0) consejos.push(`🎉 ¡Vas muy bien! Solo gastaste el ${Math.round(ratio*100)}% de tu ingreso. Mueve el excedente a una meta de ahorro.`)
+    else if (ratio < 0.3 && totalGastado > 0) consejos.push(`🎉 ¡Vas muy bien! Solo gastaste el ${Math.round(ratio*100)}% de tu ingreso.`)
     if (topCat && topCat[1] > 0) {
       const pctCat = income > 0 ? Math.round(topCat[1]/income*100) : 0
       if (topCat[0] === 'Entretenimiento' && pctCat > 20) consejos.push(`🎮 Entretenimiento es tu mayor gasto (${pctCat}% de tu ingreso).`)
-      else if (topCat[0] === 'Alimentación' && pctCat > 30) consejos.push(`🍽️ Alimentación representa el ${pctCat}% de tus gastos. Cocinar en casa puede ahorrarte S/150.`)
+      else if (topCat[0] === 'Alimentación' && pctCat > 30) consejos.push(`🍽️ Alimentación representa el ${pctCat}% de tus gastos.`)
       else if (topCat[0] === 'Compras' && pctCat > 25) consejos.push(`🛍️ Compras es tu categoría más alta (${pctCat}%).`)
       else consejos.push(`📌 Tu mayor gasto este mes es ${topCat[0]} con S/${Math.round(topCat[1]).toLocaleString('es-PE')}.`)
     }
-    if (daysUntilSalary <= 7 && daysUntilSalary > 0) consejos.push(`⏰ Faltan ${daysUntilSalary} días para tu cobro. Planifica bien estos últimos días.`)
+    if (daysUntilSalary <= 7 && daysUntilSalary > 0) consejos.push(`⏰ Faltan ${daysUntilSalary} días para tu cobro.`)
     return consejos.length > 0 ? consejos : null
   }, [expenses, totalGastado, profile, daysUntilSalary])
 
@@ -291,10 +287,11 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
       const t = new Date(now)
       t.setDate(now.getDate()-dow+i)
       const dateStr = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`
-      const total = expenses.filter(e=>e.date===dateStr).reduce((s,e)=>s+Number(e.amount),0)
+      const total = expensesSemana.filter(e=>e.date===dateStr).reduce((s,e)=>s+Number(e.amount),0)
       return {day, total, isToday:i===dow}
     })
-  }, [expenses])
+  }, [expensesSemana])
+
   const maxWeek = Math.max(...weekData.map(d=>d.total),1)
   const weekTotal = weekData.reduce((s,d)=>s+d.total,0)
 
@@ -470,7 +467,6 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
           </div>
         </div>
 
-        {/* Insight IA */}
         <div className="rounded-[18px] bg-[#edf7f2] border border-[#bbf7d0] p-4">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-6 h-6 rounded-full bg-[#5a4bc3] flex items-center justify-center flex-shrink-0">
