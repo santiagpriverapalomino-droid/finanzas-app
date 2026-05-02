@@ -143,23 +143,23 @@ export async function GET(req: Request) {
         if (!gasto) continue
 
         const { data: existing } = await supabase
-          .from('expenses')
-          .select('id')
-          .eq('user_id', profile.id)
-          .eq('amount', gasto.monto)
-          .eq('date', gasto.fecha)
-          .single()
+        .from('expenses')
+        .select('id')
+        .eq('user_id', profile.id)
+        .eq('gmail_message_id', msg.id)
+        .single()
 
-        if (!existing) {
-          await supabase.from('expenses').insert({
-            user_id: profile.id,
-            amount: gasto.monto,
-            currency: gasto.moneda,
-            description: gasto.descripcion,
-            category: gasto.categoria,
-            date: gasto.fecha,
-            source: 'gmail',
-          })
+      if (!existing) {
+        await supabase.from('expenses').insert({
+          user_id: profile.id,
+          amount: gasto.monto,
+          currency: gasto.moneda,
+          description: gasto.descripcion,
+          category: gasto.categoria,
+          date: gasto.fecha,
+          source: 'gmail',
+          gmail_message_id: msg.id,
+        })
           totalInsertados++
 
           await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/push/send`, {
