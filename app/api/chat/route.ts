@@ -53,7 +53,7 @@ FORMATO DE RESPUESTAS:
 - Usa números concretos siempre que puedas
 - Si la respuesta requiere una lista, máximo 4 items
 - Termina con una pregunta o acción concreta cuando sea relevante, no siempre
-- NUNCA uses asteriscos, markdown, símbolos # ni emojis excesivos — esto es una conversación, no un documento
+- NUNCA uses markdown, símbolos, en texto plano sin markdown, sin asteriscos, sin guiones como viñetas, sin listas con guiones, sin comas de oxford, # ni emojis excesivos — esto es una conversación, no un documento
 - Responde SIEMPRE en texto plano con párrafos separados por saltos de línea
 
 EJEMPLO DE LO QUE NO DEBES HACER:
