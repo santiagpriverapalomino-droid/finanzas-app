@@ -176,7 +176,13 @@ await new Promise<void>(resolve => {
 const reg = await navigator.serviceWorker.ready
                 const existing = await reg.pushManager.getSubscription()
 const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-const keyData = Uint8Array.from(atob(vapidKey.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0))
+const base64 = vapidKey.replace(/-/g, '+').replace(/_/g, '/')
+const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=')
+const binary = atob(padded)
+const keyData = new Uint8Array(binary.length)
+for (let i = 0; i < binary.length; i++) {
+  keyData[i] = binary.charCodeAt(i)
+}
 const sub = existing || await reg.pushManager.subscribe({ 
   userVisibleOnly: true, 
   applicationServerKey: keyData
