@@ -157,13 +157,23 @@ export async function POST(req: Request) {
     const FIXED = ['Alimentación', 'Transporte', 'Entretenimiento', 'Compras', 'Servicios', 'Salud']
 
     for (const gasto of gastos) {
-      const { data: existing } = await supabase
+      // Chequear por message_id primero, luego por monto+fecha como fallback
+      const { data: existingById } = await supabase
+        .from('expenses')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('gmail_message_id', gasto.messageId)
+        .single()
+
+      const { data: existingByAmount } = await supabase
         .from('expenses')
         .select('id')
         .eq('user_id', userId)
         .eq('amount', gasto.monto)
         .eq('date', gasto.fecha)
         .single()
+
+      const existing = existingById || existingByAmount
 
       if (!existing) {
         await supabase.from('expenses').insert({
