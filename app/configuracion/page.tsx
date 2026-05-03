@@ -160,7 +160,10 @@ export default function Configuracion() {
                 if (!('serviceWorker' in navigator) || !('PushManager' in window)) { setMsg('❌ Tu navegador no soporta push'); return }
 try {
                 const permission = await Notification.requestPermission()
-                if (permission !== 'granted') { alert('Debes permitir las notificaciones para activarlas.'); return }
+                if (permission !== 'granted') { 
+  setMsg('⚙️ Ve a Ajustes → Finti → Notificaciones y actívalas, luego vuelve aquí.')
+  return 
+}
                 const registration = await navigator.serviceWorker.register('/sw.js')
 await new Promise<void>(resolve => {
   if (registration.active) { resolve(); return }
