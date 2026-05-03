@@ -158,9 +158,16 @@ export default function Configuracion() {
               </div>
               <button onClick={async () => {
                 if (!('serviceWorker' in navigator) || !('PushManager' in window)) { setMsg('❌ Tu navegador no soporta push'); return }
-setMsg(`Debug: standalone=${window.matchMedia('(display-mode: standalone)').matches}, SW=${('serviceWorker' in navigator)}, Push=${('PushManager' in window)}, Notif=${('Notification' in window)}`)
-return
+
 try {
+  // En iOS hay que verificar el estado actual primero
+if (Notification.permission === 'denied') {
+  setMsg('⚙️ Las notificaciones están bloqueadas. Ve a Ajustes → Finti → Notificaciones y actívalas.')
+  return
+}
+if (Notification.permission === 'granted') {
+  // Ya tiene permiso, solo registrar subscription
+}
                 const permission = await Notification.requestPermission()
                 if (permission !== 'granted') { 
   setMsg('⚙️ Ve a Ajustes → Finti → Notificaciones y actívalas, luego vuelve aquí.')
