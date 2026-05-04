@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
+import ThemeToggle from '../../components/ThemeToggle'
 
 export default function Configuracion() {
   const router = useRouter()
@@ -138,6 +139,7 @@ export default function Configuracion() {
         {seccion === 'menu' && (
           <div className="space-y-3">
             <p className="text-[13px] text-[#8c887d]">Gestiona tu cuenta y preferencias.</p>
+
             {[
               { label: 'Mi perfil', icon: '👤', onClick: () => setSeccion('perfil') },
               { label: 'Mi plan 50/30/20', icon: '📊', onClick: () => setSeccion('plan') },
@@ -151,6 +153,7 @@ export default function Configuracion() {
               </button>
             ))}
 
+            {/* Notificaciones */}
             <div className="flex items-center justify-between rounded-[22px] bg-white border border-[#ebe6db] p-4">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-full bg-[#5a4bc3] flex items-center justify-center text-lg">🔔</div>
@@ -158,60 +161,60 @@ export default function Configuracion() {
               </div>
               <button onClick={async () => {
                 if (!('serviceWorker' in navigator) || !('PushManager' in window)) { setMsg('❌ Tu navegador no soporta push'); return }
-
-try {
-  // En iOS hay que verificar el estado actual primero
-if (Notification.permission === 'denied') {
-  setMsg('⚙️ Las notificaciones están bloqueadas. Ve a Ajustes → Finti → Notificaciones y actívalas.')
-  return
-}
-if (Notification.permission === 'granted') {
-  // Ya tiene permiso, solo registrar subscription
-}
-                const permission = await Notification.requestPermission()
-                if (permission !== 'granted') { 
-  setMsg('⚙️ Ve a Ajustes → Finti → Notificaciones y actívalas, luego vuelve aquí.')
-  return 
-}
-                const registration = await navigator.serviceWorker.register('/sw.js')
-await new Promise<void>(resolve => {
-  if (registration.active) { resolve(); return }
-  registration.addEventListener('updatefound', () => {
-    const newWorker = registration.installing
-    if (!newWorker) { resolve(); return }
-    newWorker.addEventListener('statechange', () => {
-      if (newWorker.state === 'activated') resolve()
-    })
-  })
-  setTimeout(resolve, 3000)
-})
-const reg = await navigator.serviceWorker.ready
-                const existing = await reg.pushManager.getSubscription()
-const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-const base64 = vapidKey.replace(/-/g, '+').replace(/_/g, '/')
-const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=')
-const binary = atob(padded)
-const keyData = new Uint8Array(binary.length)
-for (let i = 0; i < binary.length; i++) {
-  keyData[i] = binary.charCodeAt(i)
-}
-const sub = existing || await reg.pushManager.subscribe({ 
-  userVisibleOnly: true, 
-  applicationServerKey: keyData
-})
-const subJson = sub.toJSON()
-const res = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id, subscription: subJson }) })
-const resData = await res.json()
-if (res.ok) setMsg('✅ Notificaciones activadas')
-else setMsg('❌ Error: ' + JSON.stringify(resData))
-              } catch (err) {
-                setMsg('❌ Excepción: ' + String(err))
-              }
+                try {
+                  if (Notification.permission === 'denied') {
+                    setMsg('⚙️ Las notificaciones están bloqueadas. Ve a Ajustes → Finti → Notificaciones y actívalas.')
+                    return
+                  }
+                  const permission = await Notification.requestPermission()
+                  if (permission !== 'granted') {
+                    setMsg('⚙️ Ve a Ajustes → Finti → Notificaciones y actívalas, luego vuelve aquí.')
+                    return
+                  }
+                  const registration = await navigator.serviceWorker.register('/sw.js')
+                  await new Promise<void>(resolve => {
+                    if (registration.active) { resolve(); return }
+                    registration.addEventListener('updatefound', () => {
+                      const newWorker = registration.installing
+                      if (!newWorker) { resolve(); return }
+                      newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'activated') resolve()
+                      })
+                    })
+                    setTimeout(resolve, 3000)
+                  })
+                  const reg = await navigator.serviceWorker.ready
+                  const existing = await reg.pushManager.getSubscription()
+                  const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
+                  const base64 = vapidKey.replace(/-/g, '+').replace(/_/g, '/')
+                  const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=')
+                  const binary = atob(padded)
+                  const keyData = new Uint8Array(binary.length)
+                  for (let i = 0; i < binary.length; i++) { keyData[i] = binary.charCodeAt(i) }
+                  const sub = existing || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyData })
+                  const subJson = sub.toJSON()
+                  const res = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id, subscription: subJson }) })
+                  const resData = await res.json()
+                  if (res.ok) setMsg('✅ Notificaciones activadas')
+                  else setMsg('❌ Error: ' + JSON.stringify(resData))
+                } catch (err) {
+                  setMsg('❌ Excepción: ' + String(err))
+                }
               }} className="text-[13px] font-bold text-white bg-[#5a4bc3] px-4 py-2 rounded-full">
                 Activar
               </button>
             </div>
 
+            {/* Modo oscuro */}
+            <div className="flex items-center justify-between rounded-[22px] bg-white border border-[#ebe6db] p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-[#5a4bc3] flex items-center justify-center text-lg">🌙</div>
+                <span className="text-[15px] font-medium text-[#1f1f1f]">Modo oscuro</span>
+              </div>
+              <ThemeToggle />
+            </div>
+
+            {/* Exportar PDF */}
             <button onClick={exportarPDF}
               className="w-full flex items-center gap-4 rounded-[22px] bg-white border border-[#ebe6db] p-4">
               <div className="w-10 h-10 rounded-full bg-[#22c55e] flex items-center justify-center text-lg">📄</div>
@@ -219,6 +222,7 @@ else setMsg('❌ Error: ' + JSON.stringify(resData))
               <svg className="ml-auto" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8c887d" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
 
+            {/* Enviar reporte */}
             <button onClick={async () => {
               const res = await fetch('/api/reporte', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id, email: user.email, nombre: form.full_name }) })
               if (res.ok) setMsg('✅ Reporte enviado a tu email')
@@ -228,6 +232,7 @@ else setMsg('❌ Error: ' + JSON.stringify(resData))
               <span className="text-[15px] font-medium text-[#1f1f1f]">Enviar reporte por email</span>
               <svg className="ml-auto" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8c887d" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
+
             {msg && <p className="text-center text-[13px] font-medium text-[#22c55e]">{msg}</p>}
           </div>
         )}

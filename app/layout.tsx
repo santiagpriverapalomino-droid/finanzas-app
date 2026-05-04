@@ -9,24 +9,26 @@ export const metadata: Metadata = {
   description: 'Controla tus gastos y ahorra más con IA',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-  <head>
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#4C1D95" />
-    <meta name="color-scheme" content="light" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Finti" />
-  </head>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#4C1D95" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Finti" />
+      </head>
       <body className={inter.className}>
         {children}
         <script dangerouslySetInnerHTML={{__html: `
+          // Aplicar tema guardado antes de renderizar
+          (function() {
+            try {
+              const theme = localStorage.getItem('finti-theme')
+              if (theme === 'dark') document.documentElement.classList.add('dark')
+            } catch(e) {}
+          })()
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
               navigator.serviceWorker.register('/sw.js')
