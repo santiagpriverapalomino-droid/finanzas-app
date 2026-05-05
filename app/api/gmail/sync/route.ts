@@ -125,7 +125,7 @@ export async function POST(req: Request) {
     const hace30dias = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
     const afterDate = `${hace30dias.getFullYear()}/${String(hace30dias.getMonth()+1).padStart(2,'0')}/${String(hace30dias.getDate()).padStart(2,'0')}`
     
-    const query = encodeURIComponent(`from:(notificacionesbcp.com.pe OR yape) after:${afterDate}`)
+const query = encodeURIComponent(`from:(notificacionesbcp.com.pe OR notificaciones@yape.pe) after:${afterDate}`)
 
     const gmailRes = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=100`,
