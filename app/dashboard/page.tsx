@@ -9,11 +9,8 @@ import TourGuide from '../../components/tourguide'
 
 const FIXED_CATEGORIES = ['Alimentación', 'Transporte', 'Entretenimiento', 'Compras']
 const CATEGORY_COLORS: Record<string, string> = {
-  'Alimentación': '#5b4bc4',
-  'Transporte': '#1fa18b',
-  'Entretenimiento': '#f1a22e',
-  'Compras': '#db6334',
-  'Otros': '#94a3b8',
+  'Alimentación': '#5b4bc4', 'Transporte': '#1fa18b',
+  'Entretenimiento': '#f1a22e', 'Compras': '#db6334', 'Otros': '#94a3b8',
 }
 const EXTRA_COLORS = ['#9333ea','#2563eb','#16a34a','#ca8a04','#dc2626','#db2777']
 
@@ -43,12 +40,12 @@ interface Goal { id: string; name: string; target_amount: number; saved_amount: 
 interface Profile {
   monthly_income: number; salary_day: number; is_first_salary_mode: boolean
   needs_percent: number; wants_percent: number; savings_percent: number; custom_categories: string[]
+  dashboard_widgets: { meta: boolean; semana: boolean; donut: boolean; categorias: boolean }
 }
 
 function DonutChart({ expenses, customCats }: { expenses: Expense[], customCats: string[] }) {
   const [hovered, setHovered] = useState<string | null>(null)
   const total = expenses.reduce((s,e) => s + Number(e.amount), 0)
-
   const segments = useMemo(() => {
     const map: Record<string,number> = {}
     expenses.forEach(e => { map[e.category] = (map[e.category]||0) + Number(e.amount) })
@@ -129,6 +126,8 @@ export default function Dashboard() {
   const [logro, setLogro] = useState<string | null>(null)
   const [alertaIA, setAlertaIA] = useState<string | null>(null)
   const [cargandoAlerta, setCargandoAlerta] = useState(true)
+  const [showWidgets, setShowWidgets] = useState(false)
+  const [widgets, setWidgets] = useState({ meta: true, semana: true, donut: true, categorias: true })
 
   useEffect(() => {
     const init = async () => {
@@ -136,12 +135,15 @@ export default function Dashboard() {
       if (!user) { router.push('/'); return }
 
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      if (!prof?.monthly_income || !prof?.salary_day) {
-        router.push('/onboarding'); return
-      }
+      if (!prof?.monthly_income || !prof?.salary_day) { router.push('/onboarding'); return }
 
       setUser(user)
       setProfile(prof)
+
+      // Cargar preferencias de widgets
+      if (prof?.dashboard_widgets) {
+        setWidgets({ meta: true, semana: true, donut: true, categorias: true, ...prof.dashboard_widgets })
+      }
 
       const now = new Date()
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
@@ -176,16 +178,10 @@ export default function Dashboard() {
       const enviarNotif = async (userId: string, income: number, gastos: number, salaryDay: number, goals: any[]) => {
         const ratio = income > 0 ? gastos / income : 0
         const hoy = new Date().getDate()
-        if (ratio >= 0.8) {
-          await fetch('/api/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, title: '⚠️ Presupuesto casi agotado', body: `Llevás gastado el ${Math.round(ratio*100)}% de tu presupuesto.`, url: '/gastos' }) }).catch(()=>{})
-        }
-        if (hoy === salaryDay) {
-          await fetch('/api/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, title: '💰 Hoy es día de cobro', body: 'Recuerda apartar tu ahorro antes de gastar.', url: '/dashboard' }) }).catch(()=>{})
-        }
+        if (ratio >= 0.8) await fetch('/api/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, title: '⚠️ Presupuesto casi agotado', body: `Llevás gastado el ${Math.round(ratio*100)}% de tu presupuesto.`, url: '/gastos' }) }).catch(()=>{})
+        if (hoy === salaryDay) await fetch('/api/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, title: '💰 Hoy es día de cobro', body: 'Recuerda apartar tu ahorro antes de gastar.', url: '/dashboard' }) }).catch(()=>{})
         const metaCercana = goals.find((g: any) => { const pct = g.target_amount > 0 ? g.saved_amount / g.target_amount : 0; return pct >= 0.8 && pct < 1 })
-        if (metaCercana) {
-          await fetch('/api/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, title: '🎯 Meta casi lista', body: `Tu meta "${metaCercana.name}" está al ${Math.round(metaCercana.saved_amount/metaCercana.target_amount*100)}%.`, url: '/metas' }) }).catch(()=>{})
-        }
+        if (metaCercana) await fetch('/api/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, title: '🎯 Meta casi lista', body: `Tu meta "${metaCercana.name}" está al ${Math.round(metaCercana.saved_amount/metaCercana.target_amount*100)}%.`, url: '/metas' }) }).catch(()=>{})
       }
 
       await enviarNotif(user.id, prof?.monthly_income||0, (exp||[]).reduce((s:number,e:any)=>s+Number(e.amount),0), prof?.salary_day||0, g||[])
@@ -200,7 +196,6 @@ export default function Dashboard() {
         const catMap: Record<string, number> = {}
         ;(exp || []).forEach((e: any) => { catMap[e.category] = (catMap[e.category] || 0) + Number(e.amount) })
         const topCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([cat, val]) => `${cat}: S/${Math.round(val)}`).join(', ')
-
         const prompt = `Genera UNA alerta financiera corta y directa para ${nombre}. Máximo 2 oraciones. Sin emojis excesivos. Sin markdown. Habla como un amigo.
 
 Datos:
@@ -212,12 +207,7 @@ Datos:
 - Metas activas: ${(g || []).length}
 
 Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alértalo con números concretos y una acción específica.`
-
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pregunta: prompt, resumenGastos: '', contextoUsuario: '', historial: [] })
-        })
+        const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pregunta: prompt, resumenGastos: '', contextoUsuario: '', historial: [] }) })
         const data = await res.json()
         if (data.respuesta) setAlertaIA(data.respuesta)
       } catch {}
@@ -227,6 +217,11 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
     }
     init()
   }, [])
+
+  const guardarWidgets = async (newWidgets: typeof widgets) => {
+    setWidgets(newWidgets)
+    if (user) await supabase.from('profiles').update({ dashboard_widgets: newWidgets }).eq('id', user.id)
+  }
 
   const totalGastado = useMemo(() => expenses.reduce((s,e)=>s+Number(e.amount),0), [expenses])
   const disponible = (profile?.monthly_income||0) - totalGastado
@@ -253,15 +248,15 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
     const catMap: Record<string,number> = {}
     expenses.forEach(e => { catMap[e.category] = (catMap[e.category]||0) + Number(e.amount) })
     const topCat = Object.entries(catMap).sort((a,b) => b[1]-a[1])[0]
-    if (ratio > 0.9) consejos.push(`⚠️ Gastaste el ${Math.round(ratio*100)}% de tu ingreso este mes. Revisa tus gastos no esenciales.`)
-    else if (ratio > 0.7) consejos.push(`📊 Llevas el ${Math.round(ratio*100)}% del presupuesto. Te quedan S/${Math.round(income - totalGastado)} — úsalos con cuidado.`)
+    if (ratio > 0.9) consejos.push(`⚠️ Gastaste el ${Math.round(ratio*100)}% de tu ingreso este mes.`)
+    else if (ratio > 0.7) consejos.push(`📊 Llevas el ${Math.round(ratio*100)}% del presupuesto. Te quedan S/${Math.round(income - totalGastado)}.`)
     else if (ratio < 0.3 && totalGastado > 0) consejos.push(`🎉 ¡Vas muy bien! Solo gastaste el ${Math.round(ratio*100)}% de tu ingreso.`)
     if (topCat && topCat[1] > 0) {
       const pctCat = income > 0 ? Math.round(topCat[1]/income*100) : 0
-      if (topCat[0] === 'Entretenimiento' && pctCat > 20) consejos.push(`🎮 Entretenimiento es tu mayor gasto (${pctCat}% de tu ingreso).`)
+      if (topCat[0] === 'Entretenimiento' && pctCat > 20) consejos.push(`🎮 Entretenimiento es tu mayor gasto (${pctCat}%).`)
       else if (topCat[0] === 'Alimentación' && pctCat > 30) consejos.push(`🍽️ Alimentación representa el ${pctCat}% de tus gastos.`)
       else if (topCat[0] === 'Compras' && pctCat > 25) consejos.push(`🛍️ Compras es tu categoría más alta (${pctCat}%).`)
-      else consejos.push(`📌 Tu mayor gasto este mes es ${topCat[0]} con S/${Math.round(topCat[1]).toLocaleString('es-PE')}.`)
+      else consejos.push(`📌 Tu mayor gasto es ${topCat[0]} con S/${Math.round(topCat[1]).toLocaleString('es-PE')}.`)
     }
     if (daysUntilSalary <= 7 && daysUntilSalary > 0) consejos.push(`⏰ Faltan ${daysUntilSalary} días para tu cobro.`)
     return consejos.length > 0 ? consejos : null
@@ -306,6 +301,13 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
 
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] || ''
 
+  const WIDGET_OPTIONS = [
+    { key: 'meta', label: 'Meta activa', icon: '🎯' },
+    { key: 'semana', label: 'Esta semana', icon: '📅' },
+    { key: 'donut', label: 'Distribución de gastos', icon: '🍩' },
+    { key: 'categorias', label: 'Gastos por categoría', icon: '📊' },
+  ]
+
   return (
     <div className="min-h-screen bg-[#f5f3ee]">
       <div className="bg-[#3d2f9f] px-4 pt-10 pb-10">
@@ -315,6 +317,9 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
             <p className="text-[14px] font-bold text-white">Inicio</p>
           </div>
           <div className="flex gap-2">
+            <button onClick={() => setShowWidgets(true)} className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            </button>
             <Link href="/configuracion" className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </Link>
@@ -365,7 +370,7 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
           </div>
         </div>
 
-        {activeGoal && (
+        {widgets.meta && activeGoal && (
           <div className="rounded-[18px] bg-white border border-[#ebe6db] p-4">
             <div className="flex items-center justify-between mb-2">
               <p className="text-[13px] font-bold text-[#1f1f1f]">🎯 {activeGoal.name}</p>
@@ -403,31 +408,33 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
           </div>
         )}
 
-        <DonutChart expenses={expenses} customCats={customCats} />
+        {widgets.donut && <DonutChart expenses={expenses} customCats={customCats} />}
 
-        <div className="rounded-[18px] bg-white border border-[#ebe6db] p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-[#9a9590]">Esta semana</p>
-            <p className="text-[13px] font-bold text-[#b24f58]">{fmt(weekTotal)}</p>
-          </div>
-          <div className="flex items-end gap-1.5 mb-2" style={{height:'48px'}}>
-            {weekData.map(d=>{
-              const h = d.total>0?Math.max(6,(d.total/maxWeek)*44):2
-              return (
-                <div key={d.day} className="flex-1 flex items-end">
-                  <div className="w-full rounded-t-[4px]" style={{height:`${h}px`,background:d.isToday?'#5a4bc3':'#c8bbf5',opacity:d.total===0?0.3:1}}/>
+        {widgets.semana && (
+          <div className="rounded-[18px] bg-white border border-[#ebe6db] p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-[#9a9590]">Esta semana</p>
+              <p className="text-[13px] font-bold text-[#b24f58]">{fmt(weekTotal)}</p>
+            </div>
+            <div className="flex items-end gap-1.5 mb-2" style={{height:'48px'}}>
+              {weekData.map(d=>{
+                const h = d.total>0?Math.max(6,(d.total/maxWeek)*44):2
+                return (
+                  <div key={d.day} className="flex-1 flex items-end">
+                    <div className="w-full rounded-t-[4px]" style={{height:`${h}px`,background:d.isToday?'#5a4bc3':'#c8bbf5',opacity:d.total===0?0.3:1}}/>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="flex justify-between">
+              {weekData.map(d=>(
+                <div key={d.day} className="flex-1 flex flex-col items-center">
+                  <p className={`text-[10px] ${d.isToday?'text-[#5a4bc3] font-bold':'text-[#aaa]'}`}>{d.day}</p>
                 </div>
-              )
-            })}
+              ))}
+            </div>
           </div>
-          <div className="flex justify-between">
-            {weekData.map(d=>(
-              <div key={d.day} className="flex-1 flex flex-col items-center">
-                <p className={`text-[10px] ${d.isToday?'text-[#5a4bc3] font-bold':'text-[#aaa]'}`}>{d.day}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+        )}
 
         {isFirstSalary && income > 0 && (
           <div className="rounded-[18px] bg-[#ede9ff] border border-[#c8bbf5] p-4">
@@ -448,25 +455,27 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
           </div>
         )}
 
-        <div className="rounded-[18px] bg-white border border-[#ebe6db] p-4">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-[#9a9590] mb-3">Gastos por categoría</p>
-          <div className="space-y-3">
-            {orderedCategories.filter(c=>c.amount>0).map(({cat,amount})=>{
-              const width = Math.max(8,(amount/highestCat)*100)
-              return (
-                <div key={cat}>
-                  <div className="flex justify-between text-[13px] mb-1">
-                    <span className="text-[#403c37]">{cat}</span>
-                    <span className="font-semibold text-[#2f2d29]">{fmt(amount)}</span>
+        {widgets.categorias && (
+          <div className="rounded-[18px] bg-white border border-[#ebe6db] p-4">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-[#9a9590] mb-3">Gastos por categoría</p>
+            <div className="space-y-3">
+              {orderedCategories.filter(c=>c.amount>0).map(({cat,amount})=>{
+                const width = Math.max(8,(amount/highestCat)*100)
+                return (
+                  <div key={cat}>
+                    <div className="flex justify-between text-[13px] mb-1">
+                      <span className="text-[#403c37]">{cat}</span>
+                      <span className="font-semibold text-[#2f2d29]">{fmt(amount)}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-[#f0ebe0]">
+                      <div className="h-2 rounded-full transition-all" style={{width:`${width}%`,backgroundColor:getCategoryColor(cat,customCats)}}/>
+                    </div>
                   </div>
-                  <div className="h-2 rounded-full bg-[#f0ebe0]">
-                    <div className="h-2 rounded-full transition-all" style={{width:`${width}%`,backgroundColor:getCategoryColor(cat,customCats)}}/>
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="rounded-[18px] bg-[#edf7f2] border border-[#bbf7d0] p-4">
           <div className="flex items-center gap-2 mb-3">
@@ -497,6 +506,34 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
         </div>
 
       </div>
+
+      {/* Modal widgets */}
+      {showWidgets && (
+        <div className="fixed inset-0 z-50 bg-black/35 backdrop-blur-sm" onClick={() => setShowWidgets(false)}>
+          <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-white p-5 pb-10" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#ddd7cc]"/>
+            <h2 className="text-[18px] font-semibold text-[#1f1f1f] mb-1">Personalizar dashboard</h2>
+            <p className="text-[13px] text-[#9a9590] mb-5">Activa o desactiva las secciones que quieres ver.</p>
+            <div className="space-y-3">
+              {WIDGET_OPTIONS.map(w => (
+                <div key={w.key} className="flex items-center justify-between p-4 rounded-[16px] bg-[#f7f4ed] border border-[#ebe6db]">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{w.icon}</span>
+                    <p className="text-[14px] font-medium text-[#1f1f1f]">{w.label}</p>
+                  </div>
+                  <button onClick={() => guardarWidgets({...widgets, [w.key]: !widgets[w.key as keyof typeof widgets]})}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${widgets[w.key as keyof typeof widgets] ? 'bg-[#5a4bc3]' : 'bg-[#ddd7cc]'}`}>
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${widgets[w.key as keyof typeof widgets] ? 'translate-x-6' : 'translate-x-1'}`}/>
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setShowWidgets(false)} className="w-full mt-5 bg-[#5a4bc3] text-white rounded-[16px] py-3 font-bold text-[15px]">
+              Listo
+            </button>
+          </div>
+        </div>
+      )}
 
       <Navbar />
 
