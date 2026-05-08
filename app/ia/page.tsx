@@ -1,6 +1,6 @@
 'use client'
 export const dynamic = 'force-dynamic'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
@@ -27,6 +27,11 @@ export default function ChatIA() {
   const [input, setInput] = useState('')
   const [cargando, setCargando] = useState(false)
   const [loading, setLoading] = useState(true)
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [mensajes])
 
   useEffect(() => {
     const init = async () => {
@@ -45,19 +50,53 @@ export default function ChatIA() {
       setGastos(exp || [])
       setGastosHistorial(expHistorial || [])
 
+      // Cargar historial de chat de Supabase
+      const { data: chatHistory } = await supabase
+        .from('chat_history')
+        .select('role, content')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+        .limit(20)
+
       const nombre = user.user_metadata?.full_name?.split(' ')[0] || 'ahí'
       const totalGastado = (exp || []).reduce((s: number, e: any) => s + Number(e.amount), 0)
       const tieneGastos = (exp || []).length > 0
 
-      const bienvenida = tieneGastos
-        ? `Hola ${nombre} 👋 Este mes llevas S/${totalGastado.toLocaleString('es-PE')} gastados. Pregúntame cualquier cosa sobre finanzas o cómo mejorar tus hábitos.`
-        : `Hola ${nombre} 👋 Aún no registras gastos este mes, pero puedo ayudarte con consejos financieros simples y realistas. ¿En qué te ayudo?`
+      if (chatHistory && chatHistory.length > 0) {
+        // Restaurar historial previo
+        const mensajesRestaurados: Mensaje[] = chatHistory.map((m: any) => ({
+          rol: m.role === 'user' ? 'user' : 'ia',
+          texto: m.content
+        }))
+        setMensajes(mensajesRestaurados)
+        setHistorialApi(chatHistory.map((m: any) => ({ role: m.role, content: m.content })))
+      } else {
+        // Primera vez — mensaje de bienvenida
+        const bienvenida = tieneGastos
+          ? `Hola ${nombre} 👋 Este mes llevas S/${totalGastado.toLocaleString('es-PE')} gastados. Pregúntame cualquier cosa sobre finanzas o cómo mejorar tus hábitos.`
+          : `Hola ${nombre} 👋 Aún no registras gastos este mes, pero puedo ayudarte con consejos financieros simples y realistas. ¿En qué te ayudo?`
+        setMensajes([{ rol: 'ia', texto: bienvenida }])
+        // Guardar bienvenida en Supabase
+        await supabase.from('chat_history').insert({ user_id: user.id, role: 'assistant', content: bienvenida })
+      }
 
-      setMensajes([{ rol: 'ia', texto: bienvenida }])
       setLoading(false)
     }
     init()
   }, [])
+
+  const limpiarChat = async () => {
+    if (!user) return
+    await supabase.from('chat_history').delete().eq('user_id', user.id)
+    const nombre = user.user_metadata?.full_name?.split(' ')[0] || 'ahí'
+    const totalGastado = gastos.reduce((s: number, e: any) => s + Number(e.amount), 0)
+    const bienvenida = gastos.length > 0
+      ? `Hola ${nombre} 👋 Este mes llevas S/${totalGastado.toLocaleString('es-PE')} gastados. ¿En qué te ayudo?`
+      : `Hola ${nombre} 👋 ¿En qué te ayudo hoy?`
+    setMensajes([{ rol: 'ia', texto: bienvenida }])
+    setHistorialApi([])
+    await supabase.from('chat_history').insert({ user_id: user.id, role: 'assistant', content: bienvenida })
+  }
 
   const enviar = async (pregunta?: string) => {
     const texto = pregunta || input.trim()
@@ -66,46 +105,54 @@ export default function ChatIA() {
     setMensajes(prev => [...prev, { rol: 'user', texto }])
     setCargando(true)
 
+    // Guardar mensaje del usuario
+    await supabase.from('chat_history').insert({ user_id: user.id, role: 'user', content: texto })
+
     const resumen = gastos.map((g: any) => `${g.description}: S/${g.amount} (${g.category}) - ${g.date}`).join('\n')
+    const totalMes = gastos.reduce((s: number, e: any) => s + Number(e.amount), 0)
+    const ingreso = profile?.monthly_income || 0
+    const disponible = ingreso - totalMes
 
-      const totalMes = gastos.reduce((s: number, e: any) => s + Number(e.amount), 0)
-      const ingreso = profile?.monthly_income || 0
-      const disponible = ingreso - totalMes
+    const resumenHistorial = gastosHistorial.length > 0
+      ? (() => {
+          const byMonth: Record<string, number> = {}
+          gastosHistorial.forEach((e: any) => {
+            const key = e.date.slice(0, 7)
+            byMonth[key] = (byMonth[key] || 0) + Number(e.amount)
+          })
+          return Object.entries(byMonth).map(([k, v]) => `${k}: S/${v.toFixed(0)}`).join(', ')
+        })()
+      : null
 
-      const resumenHistorial = gastosHistorial.length > 0
-        ? (() => {
-            const byMonth: Record<string, number> = {}
-            gastosHistorial.forEach((e: any) => {
-              const key = e.date.slice(0, 7)
-              byMonth[key] = (byMonth[key] || 0) + Number(e.amount)
-            })
-            return Object.entries(byMonth).map(([k, v]) => `${k}: S/${v.toFixed(0)}`).join(', ')
-          })()
-        : null
+    const hoyDia = new Date().getDate()
+    const diasEnMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    const gastoEsperadoAFecha = ingreso > 0 ? Math.round(ingreso * hoyDia / diasEnMes) : 0
 
-      const hoyDia = new Date().getDate()
-const diasEnMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
-const gastoEsperadoAFecha = ingreso > 0 ? Math.round(ingreso * hoyDia / diasEnMes) : 0
+    const contextoUsuario = [
+      ingreso > 0 ? `Ingreso mensual: S/${ingreso}` : null,
+      `Hoy es el día ${hoyDia} de ${diasEnMes} del mes (faltan ${diasEnMes - hoyDia} días)`,
+      ingreso > 0 ? `Total gastado hasta hoy: S/${totalMes.toFixed(0)} de S/${ingreso} (${Math.round(totalMes/ingreso*100)}% del ingreso mensual)` : null,
+      ingreso > 0 ? `Gasto esperado a esta altura: S/${gastoEsperadoAFecha} — el usuario lleva ${totalMes <= gastoEsperadoAFecha ? 'MENOS de lo esperado (va bien)' : 'MÁS de lo esperado (ojo)'}` : null,
+      ingreso > 0 ? `Disponible estimado al fin de mes: S/${disponible.toFixed(0)}` : null,
+      profile?.salary_day ? `Día de cobro: ${profile.salary_day}` : null,
+      profile?.needs_percent ? `Plan: ${profile.needs_percent}% necesidades, ${profile.wants_percent}% gustos, ${profile.savings_percent}% ahorro` : null,
+      resumenHistorial ? `Gastos últimos 3 meses: ${resumenHistorial}` : null,
+    ].filter(Boolean).join('\n')
 
-const contextoUsuario = [
-  ingreso > 0 ? `Ingreso mensual: S/${ingreso}` : null,
-  `Hoy es el día ${hoyDia} de ${diasEnMes} del mes (faltan ${diasEnMes - hoyDia} días)`,
-  ingreso > 0 ? `Total gastado hasta hoy: S/${totalMes.toFixed(0)} de S/${ingreso} (${Math.round(totalMes/ingreso*100)}% del ingreso mensual)` : null,
-  ingreso > 0 ? `Gasto esperado a esta altura del mes: S/${gastoEsperadoAFecha} — el usuario lleva ${totalMes <= gastoEsperadoAFecha ? 'MENOS de lo esperado (va bien)' : 'MÁS de lo esperado (ojo con eso)'}` : null,
-  ingreso > 0 ? `Disponible estimado al fin de mes: S/${disponible.toFixed(0)}` : null,
-  profile?.salary_day ? `Día de cobro: ${profile.salary_day}` : null,
-  profile?.needs_percent ? `Plan de distribución: ${profile.needs_percent}% necesidades, ${profile.wants_percent}% gustos, ${profile.savings_percent}% ahorro` : null,
-  resumenHistorial ? `Gastos últimos 3 meses: ${resumenHistorial}` : null,
-].filter(Boolean).join('\n')
-    const msgUsuario = resumen
-      ? `Mis gastos de este mes:\n${resumen}\n\nPregunta: ${texto}`
-      : texto
+    const msgUsuario = resumen ? `Mis gastos de este mes:\n${resumen}\n\nPregunta: ${texto}` : texto
 
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ pregunta: texto, resumenGastos: resumen, contextoUsuario, historial: historialApi, nombreUsuario: user?.user_metadata?.full_name?.split(' ')[0] || 'amigo' })      })
+        body: JSON.stringify({
+          pregunta: texto,
+          resumenGastos: resumen,
+          contextoUsuario,
+          historial: historialApi,
+          nombreUsuario: user?.user_metadata?.full_name?.split(' ')[0] || 'amigo'
+        })
+      })
       const { respuesta } = await res.json()
       setMensajes(prev => [...prev, { rol: 'ia', texto: respuesta }])
       setHistorialApi(prev => [
@@ -113,6 +160,8 @@ const contextoUsuario = [
         { role: 'user', content: msgUsuario },
         { role: 'assistant', content: respuesta }
       ])
+      // Guardar respuesta de IA
+      await supabase.from('chat_history').insert({ user_id: user.id, role: 'assistant', content: respuesta })
     } catch {
       setMensajes(prev => [...prev, { rol: 'ia', texto: 'Hubo un error. Intenta de nuevo.' }])
     }
@@ -131,6 +180,9 @@ const contextoUsuario = [
           <p className="text-[13px] font-bold tracking-widest text-[#1f1f1f] uppercase">Asesor Finti IA</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={limpiarChat} className="w-9 h-9 rounded-full bg-[#ece8df] flex items-center justify-center" title="Limpiar chat">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5a4bc3" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
           <Link href="/configuracion" className="w-9 h-9 rounded-full bg-[#ece8df] flex items-center justify-center">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5a4bc3" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </Link>
@@ -172,6 +224,7 @@ const contextoUsuario = [
             </div>
           </div>
         )}
+        <div ref={bottomRef}/>
       </div>
 
       {mensajes.length <= 1 && (
@@ -217,24 +270,14 @@ const contextoUsuario = [
               <span className="text-[11px] font-medium">{item.label}</span>
             </Link>
           ))}
-          <TourGuide
-            tourKey="ia"
-            steps={[
-              {
-                target: 'preguntas',
-                title: '💡 Preguntas sugeridas',
-                message: 'Toca cualquiera de estas preguntas para empezar. Están pensadas para sacarle el máximo provecho a tu asesor.',
-                position: 'bottom'
-              },
-              {
-                target: 'input-ia',
-                title: '🤖 Tu asesor financiero',
-                message: 'Escribe cualquier pregunta sobre tus finanzas. Conoce tus gastos y te da consejos personalizados.',
-                position: 'top'
-              }
-            ]}
-          />
         </div>
+        <TourGuide
+          tourKey="ia"
+          steps={[
+            { target:'preguntas', title:'💡 Preguntas sugeridas', message:'Toca cualquiera de estas preguntas para empezar.', position:'bottom' },
+            { target:'input-ia', title:'🤖 Tu asesor financiero', message:'Escribe cualquier pregunta sobre tus finanzas.', position:'top' }
+          ]}
+        />
       </div>
     </div>
   )
