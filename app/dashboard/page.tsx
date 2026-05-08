@@ -504,6 +504,40 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
             <span className="text-[12px] font-bold text-white">Preguntarle a Finti IA</span>
           </Link>
         </div>
+        {/* Predicción de gasto */}
+        {totalGastado > 0 && (() => {
+          const now = new Date()
+          const diaActual = now.getDate()
+          const diasEnMes = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+          const gastoDiario = totalGastado / diaActual
+          const prediccion = Math.round(gastoDiario * diasEnMes)
+          const diferencia = prediccion - (profile?.monthly_income || 0)
+          const estaEnRiesgo = prediccion > (profile?.monthly_income || 0)
+
+          return (
+            <div className={`rounded-[18px] p-4 border ${estaEnRiesgo ? 'bg-red-50 border-red-200' : 'bg-[#edf7f2] border-[#bbf7d0]'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[16px]">{estaEnRiesgo ? '⚠️' : '📈'}</span>
+                <p className={`text-[12px] font-bold ${estaEnRiesgo ? 'text-red-700' : 'text-[#166534]'}`}>Predicción de fin de mes</p>
+              </div>
+              <p className={`text-[13px] leading-5 ${estaEnRiesgo ? 'text-red-700' : 'text-[#1f1f1f]'}`}>
+                A este ritmo gastarás <span className="font-bold">S/{prediccion.toLocaleString('es-PE')}</span> este mes.
+                {estaEnRiesgo
+                  ? ` Eso es S/${Math.abs(diferencia).toLocaleString('es-PE')} más de lo que ganas. Frena un poco.`
+                  : ` Te sobraría S/${Math.abs(diferencia).toLocaleString('es-PE')} — vas bien.`
+                }
+              </p>
+              <div className="mt-3 h-2 rounded-full bg-white/60 overflow-hidden">
+                <div className={`h-2 rounded-full transition-all ${estaEnRiesgo ? 'bg-red-500' : 'bg-[#16a34a]'}`}
+                  style={{width: `${Math.min(100, (prediccion / (profile?.monthly_income || 1)) * 100)}%`}}/>
+              </div>
+              <div className="flex justify-between mt-1">
+                <p className="text-[10px] text-[#9a9590]">S/0</p>
+                <p className="text-[10px] text-[#9a9590]">S/{(profile?.monthly_income || 0).toLocaleString('es-PE')}</p>
+              </div>
+            </div>
+          )
+        })()}
 
       </div>
 
