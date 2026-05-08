@@ -23,11 +23,15 @@ export default function ChatIA() {
   const [gastos, setGastos] = useState<any[]>([])
   const [gastosHistorial, setGastosHistorial] = useState<any[]>([])
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
-  const [historialApi, setHistorialApi] = useState<MsgApi[]>([])
   const [input, setInput] = useState('')
   const [cargando, setCargando] = useState(false)
   const [loading, setLoading] = useState(true)
+  const historialRef = useRef<MsgApi[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
+  const userRef = useRef<any>(null)
+  const profileRef = useRef<any>(null)
+  const gastosRef = useRef<any[]>([])
+  const gastosHistorialRef = useRef<any[]>([])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -38,9 +42,11 @@ export default function ChatIA() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
       setUser(user)
+      userRef.current = user
 
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       setProfile(prof)
+      profileRef.current = prof
 
       const now = new Date()
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
@@ -49,6 +55,8 @@ export default function ChatIA() {
       const { data: expHistorial } = await supabase.from('expenses').select('amount, date, category').eq('user_id', user.id).gte('date', threeMonthsAgo).lt('date', firstDay)
       setGastos(exp || [])
       setGastosHistorial(expHistorial || [])
+      gastosRef.current = exp || []
+      gastosHistorialRef.current = expHistorial || []
 
       // Cargar historial de chat de Supabase
       const { data: chatHistory } = await supabase
@@ -56,27 +64,25 @@ export default function ChatIA() {
         .select('role, content')
         .eq('user_id', user.id)
         .order('created_at', { ascending: true })
-        .limit(20)
+        .limit(40)
 
       const nombre = user.user_metadata?.full_name?.split(' ')[0] || 'ahí'
       const totalGastado = (exp || []).reduce((s: number, e: any) => s + Number(e.amount), 0)
       const tieneGastos = (exp || []).length > 0
 
       if (chatHistory && chatHistory.length > 0) {
-        // Restaurar historial previo
         const mensajesRestaurados: Mensaje[] = chatHistory.map((m: any) => ({
           rol: m.role === 'user' ? 'user' : 'ia',
           texto: m.content
         }))
         setMensajes(mensajesRestaurados)
-        setHistorialApi(chatHistory.map((m: any) => ({ role: m.role, content: m.content })))
+        historialRef.current = chatHistory.map((m: any) => ({ role: m.role, content: m.content }))
       } else {
-        // Primera vez — mensaje de bienvenida
         const bienvenida = tieneGastos
           ? `Hola ${nombre} 👋 Este mes llevas S/${totalGastado.toLocaleString('es-PE')} gastados. Pregúntame cualquier cosa sobre finanzas o cómo mejorar tus hábitos.`
           : `Hola ${nombre} 👋 Aún no registras gastos este mes, pero puedo ayudarte con consejos financieros simples y realistas. ¿En qué te ayudo?`
         setMensajes([{ rol: 'ia', texto: bienvenida }])
-        // Guardar bienvenida en Supabase
+        historialRef.current = [{ role: 'assistant', content: bienvenida }]
         await supabase.from('chat_history').insert({ user_id: user.id, role: 'assistant', content: bienvenida })
       }
 
@@ -86,26 +92,32 @@ export default function ChatIA() {
   }, [])
 
   const limpiarChat = async () => {
+    const user = userRef.current
     if (!user) return
     await supabase.from('chat_history').delete().eq('user_id', user.id)
     const nombre = user.user_metadata?.full_name?.split(' ')[0] || 'ahí'
-    const totalGastado = gastos.reduce((s: number, e: any) => s + Number(e.amount), 0)
-    const bienvenida = gastos.length > 0
+    const totalGastado = gastosRef.current.reduce((s: number, e: any) => s + Number(e.amount), 0)
+    const bienvenida = gastosRef.current.length > 0
       ? `Hola ${nombre} 👋 Este mes llevas S/${totalGastado.toLocaleString('es-PE')} gastados. ¿En qué te ayudo?`
       : `Hola ${nombre} 👋 ¿En qué te ayudo hoy?`
     setMensajes([{ rol: 'ia', texto: bienvenida }])
-    setHistorialApi([])
+    historialRef.current = [{ role: 'assistant', content: bienvenida }]
     await supabase.from('chat_history').insert({ user_id: user.id, role: 'assistant', content: bienvenida })
   }
 
   const enviar = async (pregunta?: string) => {
     const texto = pregunta || input.trim()
     if (!texto || cargando) return
+    const user = userRef.current
+    const profile = profileRef.current
+    const gastos = gastosRef.current
+    const gastosHistorial = gastosHistorialRef.current
+    if (!user) return
+
     setInput('')
     setMensajes(prev => [...prev, { rol: 'user', texto }])
     setCargando(true)
 
-    // Guardar mensaje del usuario
     await supabase.from('chat_history').insert({ user_id: user.id, role: 'user', content: texto })
 
     const resumen = gastos.map((g: any) => `${g.description}: S/${g.amount} (${g.category}) - ${g.date}`).join('\n')
@@ -149,18 +161,17 @@ export default function ChatIA() {
           pregunta: texto,
           resumenGastos: resumen,
           contextoUsuario,
-          historial: historialApi,
+          historial: historialRef.current,
           nombreUsuario: user?.user_metadata?.full_name?.split(' ')[0] || 'amigo'
         })
       })
       const { respuesta } = await res.json()
       setMensajes(prev => [...prev, { rol: 'ia', texto: respuesta }])
-      setHistorialApi(prev => [
-        ...prev,
+      historialRef.current = [
+        ...historialRef.current,
         { role: 'user', content: msgUsuario },
         { role: 'assistant', content: respuesta }
-      ])
-      // Guardar respuesta de IA
+      ]
       await supabase.from('chat_history').insert({ user_id: user.id, role: 'assistant', content: respuesta })
     } catch {
       setMensajes(prev => [...prev, { rol: 'ia', texto: 'Hubo un error. Intenta de nuevo.' }])
@@ -170,7 +181,7 @@ export default function ChatIA() {
 
   if (loading) return <div className="min-h-screen bg-[#f5f3ee] flex items-center justify-center"><p className="text-[#8c887d]">Cargando...</p></div>
 
-  const firstName = user?.user_metadata?.full_name?.split(' ')[0] || ''
+  const firstName = userRef.current?.user_metadata?.full_name?.split(' ')[0] || ''
 
   return (
     <div className="min-h-screen bg-[#f5f3ee] flex flex-col">
