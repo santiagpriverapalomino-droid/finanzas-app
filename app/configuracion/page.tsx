@@ -17,6 +17,8 @@ export default function Configuracion() {
   const [expenses, setExpenses] = useState<any[]>([])
   const [form, setForm] = useState({ full_name: '', monthly_income: '', salary_day: '' })
   const [msg, setMsg] = useState('')
+  const [subiendoFoto, setSubiendoFoto] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -25,6 +27,7 @@ export default function Configuracion() {
       setUser(user)
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       setProfile(prof)
+      setAvatarUrl(prof?.avatar_url || null)
       setForm({
         full_name: prof?.full_name || user.user_metadata?.full_name || '',
         monthly_income: prof?.monthly_income || '',
@@ -50,6 +53,26 @@ export default function Configuracion() {
     }
     init()
   }, [])
+
+  const subirFoto = async (file: File) => {
+    if (!user) return
+    setSubiendoFoto(true)
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `${user.id}/avatar.${ext}`
+      const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      if (error) throw error
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      const url = data.publicUrl + '?t=' + Date.now()
+      await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id)
+      setAvatarUrl(url)
+      setMsg('✅ Foto actualizada')
+      setTimeout(() => setMsg(''), 3000)
+    } catch {
+      setMsg('❌ Error al subir la foto')
+    }
+    setSubiendoFoto(false)
+  }
 
   const guardarPerfil = async () => {
     if (!form.full_name || !form.monthly_income || !form.salary_day) return
@@ -243,13 +266,32 @@ export default function Configuracion() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
               Volver
             </button>
+
+            {/* Foto de perfil */}
             <div className="flex flex-col items-center py-4">
-              <div className="w-20 h-20 rounded-full bg-[#5a4bc3] flex items-center justify-center text-3xl font-bold text-white mb-3">
-                {form.full_name.charAt(0).toUpperCase()}
-              </div>
-              <p className="text-[16px] font-bold text-[#1f1f1f]">{form.full_name}</p>
+              <label className="relative cursor-pointer group">
+                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-[#5a4bc3] flex items-center justify-center bg-[#5a4bc3]">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover"/>
+                  ) : (
+                    <span className="text-3xl font-bold text-white">{form.full_name.charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+                <div className="absolute bottom-0 right-0 w-8 h-8 bg-[#5a4bc3] rounded-full flex items-center justify-center border-2 border-white">
+                  {subiendoFoto ? (
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                  ) : (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  )}
+                </div>
+                <input type="file" accept="image/*" className="hidden" disabled={subiendoFoto}
+                  onChange={e => { const file = e.target.files?.[0]; if (file) subirFoto(file) }}/>
+              </label>
+              <p className="text-[12px] text-[#9a9590] mt-3">Toca para cambiar tu foto</p>
+              <p className="text-[16px] font-bold text-[#1f1f1f] mt-1">{form.full_name}</p>
               <p className="text-[13px] text-[#8c887d]">{user.email}</p>
             </div>
+
             <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4 space-y-3">
               <p className="text-[12px] font-bold uppercase tracking-wide text-[#5a4bc3]">Datos personales</p>
               <div>
@@ -275,6 +317,7 @@ export default function Configuracion() {
                 {guardando ? 'Guardando...' : '💾 Guardar cambios'}
               </button>
             </div>
+
             <div className="rounded-[22px] border border-[#ebe6db] bg-white p-4">
               <p className="text-[12px] font-bold uppercase tracking-wide text-[#5a4bc3] mb-2">Seguridad</p>
               <p className="text-[13px] text-[#8c887d]">Tu cuenta usa autenticación con Google. Para cambiar tu contraseña ve a tu cuenta de Google.</p>
