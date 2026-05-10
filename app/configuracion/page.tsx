@@ -247,7 +247,7 @@ export default function Configuracion() {
                 {[
                   { id: 'purple', color: '#5a4bc3', label: 'Morado' },
                   { id: 'green', color: '#16a34a', label: 'Verde' },
-                  { id: 'blue', color: '#2563eb', label: 'Azul' },
+                  { id: 'blue', color: '#1d4ed8', label: 'Azul' },
                   { id: 'black', color: '#111111', label: 'Negro' },
                 ].map(t => (
                   <button key={t.id} onClick={async () => {
