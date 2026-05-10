@@ -237,6 +237,35 @@ export default function Configuracion() {
               <ThemeToggle />
             </div>
 
+            {/* Tema de color */}
+            <div className="rounded-[22px] bg-white border border-[#ebe6db] p-4">
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-10 h-10 rounded-full bg-[#5a4bc3] flex items-center justify-center text-lg">🎨</div>
+                <span className="text-[15px] font-medium text-[#1f1f1f]">Tema de color</span>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { id: 'purple', color: '#5a4bc3', label: 'Morado' },
+                  { id: 'green', color: '#16a34a', label: 'Verde' },
+                  { id: 'blue', color: '#2563eb', label: 'Azul' },
+                  { id: 'black', color: '#111111', label: 'Negro' },
+                ].map(t => (
+                  <button key={t.id} onClick={async () => {
+                    await supabase.from('profiles').update({ theme: t.id }).eq('id', user.id)
+                    document.documentElement.classList.remove('theme-green', 'theme-blue', 'theme-black')
+                    if (t.id !== 'purple') document.documentElement.classList.add(`theme-${t.id}`)
+                    setProfile((p: any) => ({...p, theme: t.id}))
+                    setMsg(`✅ Tema ${t.label} activado`)
+                    setTimeout(() => setMsg(''), 2000)
+                  }}
+                    className={`flex flex-col items-center gap-1.5 p-2 rounded-[14px] border-2 transition-all ${(profile?.theme === t.id || (!profile?.theme && t.id === 'purple')) ? 'border-[#5a4bc3]' : 'border-transparent'}`}>
+                    <div className="w-8 h-8 rounded-full" style={{background: t.color}}/>
+                    <p className="text-[10px] font-medium text-[#9a9590]">{t.label}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Exportar PDF */}
             <button onClick={exportarPDF}
               className="w-full flex items-center gap-4 rounded-[22px] bg-white border border-[#ebe6db] p-4">

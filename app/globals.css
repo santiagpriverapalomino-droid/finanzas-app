@@ -167,3 +167,59 @@ body {
 .dark .border-\[\#bbf7d0\] {
   border-color: #1a4a2a !important;
 }
+/* ── TEMA VERDE ── */
+.theme-green .bg-\[\#3d2f9f\],
+.theme-green .bg-\[\#5a4bc3\] {
+  background-color: #14532d !important;
+}
+.theme-green .text-\[\#5a4bc3\],
+.theme-green .text-\[\#3d2fa0\],
+.theme-green .text-\[\#6b5fc0\] {
+  color: #16a34a !important;
+}
+.theme-green .bg-\[\#ede9ff\] {
+  background-color: #dcfce7 !important;
+}
+.theme-green .bg-\[\#5a4bc3\] {
+  background-color: #16a34a !important;
+}
+.theme-green .border-\[\#c8bbf5\] {
+  border-color: #bbf7d0 !important;
+}
+.theme-green .accent-\[\#5a4bc3\] {
+  accent-color: #16a34a !important;
+}
+
+/* ── TEMA AZUL ── */
+.theme-blue .bg-\[\#3d2f9f\],
+.theme-blue .bg-\[\#5a4bc3\] {
+  background-color: #1e2a3a !important;
+}
+.theme-blue .text-\[\#5a4bc3\],
+.theme-blue .text-\[\#3d2fa0\],
+.theme-blue .text-\[\#6b5fc0\] {
+  color: #2563eb !important;
+}
+.theme-blue .bg-\[\#ede9ff\] {
+  background-color: #dbeafe !important;
+}
+.theme-blue .border-\[\#c8bbf5\] {
+  border-color: #bfdbfe !important;
+}
+
+/* ── TEMA NEGRO ── */
+.theme-black .bg-\[\#3d2f9f\],
+.theme-black .bg-\[\#5a4bc3\] {
+  background-color: #111111 !important;
+}
+.theme-black .text-\[\#5a4bc3\],
+.theme-black .text-\[\#3d2fa0\],
+.theme-black .text-\[\#6b5fc0\] {
+  color: #404040 !important;
+}
+.theme-black .bg-\[\#ede9ff\] {
+  background-color: #f5f5f5 !important;
+}
+.theme-black .border-\[\#c8bbf5\] {
+  border-color: #e5e5e5 !important;
+}
