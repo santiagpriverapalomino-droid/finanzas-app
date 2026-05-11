@@ -142,6 +142,10 @@ export default function Onboarding() {
               style={{animation: 'fadeInUp 0.5s ease-out 1.1s both'}}>
               100% gratis · Sin tarjeta de crédito
             </p>
+            <a href="/seguridad.html" target="_blank" className="text-center text-[11px] text-white/50 mt-1 block"
+              style={{animation: 'fadeInUp 0.5s ease-out 1.2s both'}}>
+              🔒 Cómo protegemos tus datos
+            </a>
           </div>
         </div>
       )}

@@ -94,6 +94,8 @@ export default function LandingPage() {
               'Modo oscuro y temas personalizables',
               'Instálala en tu celular como app — sin descargar nada',
               '100% gratis para empezar',
+              'Tus datos encriptados — nunca vendemos tu información',
+              'Acceso de solo lectura a Gmail — no lee tus conversaciones',
             ].map(item => (
               <div key={item} className="flex items-center gap-3">
                 <div className="w-5 h-5 rounded-full bg-[#22c55e] flex items-center justify-center flex-shrink-0">
@@ -110,6 +112,9 @@ export default function LandingPage() {
       <div className="px-5 pb-12 text-center">
         <p className="text-[18px] font-bold text-[#1f1f1f] mb-2">¿Listo para controlar tu plata?</p>
         <p className="text-[13px] text-[#8c887d] mb-5">Únete a jóvenes peruanos que ya no se preguntan en qué gastaron.</p>
+        <p className="text-[12px] text-[#8c887d] mt-3">
+  <a href="/seguridad.html" className="text-[#3d2f9f] font-medium">🔒 Ver cómo protegemos tus datos</a>
+</p>
         <Link href="/login" className="block w-full bg-[#3d2f9f] text-white rounded-[18px] py-4 text-[15px] font-bold text-center">
           Crear mi cuenta gratis →
         </Link>

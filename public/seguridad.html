@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Seguridad — Finti</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f3ee; color: #1f1f1f; }
+    .hero { background: #3d2f9f; padding: 48px 24px 32px; text-align: center; }
+    .hero h1 { font-size: 28px; font-weight: 700; color: white; margin-bottom: 8px; }
+    .hero p { font-size: 15px; color: rgba(255,255,255,0.7); max-width: 320px; margin: 0 auto; line-height: 1.5; }
+    .body { padding: 24px 20px 48px; max-width: 480px; margin: 0 auto; }
+    .card { background: white; border-radius: 20px; border: 1px solid #ebe6db; padding: 20px; margin-bottom: 16px; }
+    .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .card h2 { font-size: 15px; font-weight: 700; color: #1f1f1f; }
+    .card p { font-size: 13px; color: #8c887d; line-height: 1.6; }
+    .check-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+    .check-item { display: flex; align-items: flex-start; gap: 10px; }
+    .check-dot { width: 20px; height: 20px; border-radius: 50%; background: #22c55e; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .check-dot svg { width: 10px; height: 10px; }
+    .check-item p { font-size: 13px; color: #47433d; line-height: 1.5; }
+    .highlight { background: #edf7f2; border: 1px solid #bbf7d0; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+    .highlight p { font-size: 13px; color: #166534; line-height: 1.6; font-weight: 500; }
+    .back { display: block; text-align: center; color: #3d2f9f; font-size: 14px; font-weight: 600; margin-top: 24px; text-decoration: none; }
+    .footer { text-align: center; padding: 16px; font-size: 11px; color: #8c887d; }
+    .footer a { color: #3d2f9f; text-decoration: none; margin: 0 8px; }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <h1>🔒 Tu seguridad, primero</h1>
+    <p>Finti fue diseñado desde el inicio para proteger tu información financiera.</p>
+  </div>
+
+  <div class="body">
+
+    <div class="highlight">
+      <p>🏦 Finti nunca guarda tu contraseña del banco. Solo lee las notificaciones que el banco te manda al correo, igual que tú las leerías.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="icon" style="background:#ede9ff">🔑</div>
+        <h2>Acceso de solo lectura a Gmail</h2>
+      </div>
+      <p>Cuando conectas tu Gmail, Finti solo puede leer los correos de notificación de tu banco. No puede enviar correos, no puede leer tus conversaciones personales, no puede acceder a nada más.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="icon" style="background:#e0fdf4">🛡️</div>
+        <h2>Datos encriptados</h2>
+      </div>
+      <p>Todos tus datos financieros están almacenados en Supabase con encriptación estándar de la industria. Nadie en Finti puede ver tus gastos o información personal.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="icon" style="background:#fef3c7">🚫</div>
+        <h2>Nunca vendemos tus datos</h2>
+      </div>
+      <p>Tu información financiera es tuya. Finti no vende, no comparte y no monetiza tus datos con terceros. Nunca.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="icon" style="background:#ede9ff">🔐</div>
+        <h2>Login seguro con Google</h2>
+      </div>
+      <p>Usamos autenticación de Google — el mismo estándar que usan bancos y empresas Fortune 500. Tu contraseña nunca pasa por los servidores de Finti.</p>
+      <div class="check-list">
+        <div class="check-item">
+          <div class="check-dot"><svg viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <p>Sin contraseñas almacenadas en Finti</p>
+        </div>
+        <div class="check-item">
+          <div class="check-dot"><svg viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <p>Puedes revocar el acceso desde tu cuenta Google en cualquier momento</p>
+        </div>
+        <div class="check-item">
+          <div class="check-dot"><svg viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <p>Autenticación OAuth 2.0 estándar de la industria</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="icon" style="background:#e0fdf4">🗑️</div>
+        <h2>Elimina tu cuenta cuando quieras</h2>
+      </div>
+      <p>Puedes eliminar tu cuenta y todos tus datos en cualquier momento desde Configuración → Mi perfil → Eliminar cuenta. Sin preguntas, sin demoras.</p>
+    </div>
+
+    <a href="/login" class="back">← Volver a Finti</a>
+  </div>
+
+  <div class="footer">
+    <a href="/privacidad.html">Privacidad</a>·<a href="/terminos.html">Términos</a>
+    <br/><br/>support@usefinti.app
+  </div>
+</body>
+</html>
