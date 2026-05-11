@@ -2,21 +2,29 @@
   "name": "Finti — Tu gestor financiero",
   "short_name": "Finti",
   "description": "Gestiona tus finanzas personales con IA",
+  "id": "/",
   "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f5f3ee",
-  "theme_color": "#4C1D95",
+  "theme_color": "#3d2f9f",
   "orientation": "portrait",
+  "lang": "es",
+  "dir": "ltr",
+  "categories": ["finance", "utilities"],
   "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
+    { "src": "/icon-96.png", "sizes": "96x96", "type": "image/png" },
+    { "src": "/icon-144.png", "sizes": "144x144", "type": "image/png" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-384.png", "sizes": "384x384", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "screenshots": [
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "form_factor": "narrow"
     }
   ]
 }
