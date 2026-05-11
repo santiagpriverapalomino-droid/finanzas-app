@@ -16,6 +16,16 @@ export default function Onboarding() {
   const [guardando, setGuardando] = useState(false)
   const [featuresVisible, setFeaturesVisible] = useState<boolean[]>([])
 
+  const firstName = user?.user_metadata?.full_name?.split(' ')[0] || 'ahí'
+
+  const features = [
+    { icon: '💳', title: 'Tu banco, automático', desc: 'Conecta tu Gmail y los gastos del BCP aparecen solos — sin escribir nada.', locked: false },
+    { icon: '📊', title: 'Sabe en qué gastas', desc: 'Ve exactamente a dónde va tu plata cada mes con gráficas claras.', locked: false },
+    { icon: '🎯', title: 'Ahorra con un objetivo', desc: 'Crea metas y el simulador IA te dice cuánto ahorrar por mes para llegar.', locked: false },
+    { icon: '🤖', title: 'Tu asesor financiero', desc: 'Pregúntale cualquier cosa sobre tu plata. Conoce tu situación y responde al instante.', locked: false },
+    { icon: '📈', title: 'Invierte tu dinero', desc: 'Desbloquea inversiones al llegar a 14 días seguidos registrando gastos.', locked: true },
+  ]
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -27,7 +37,6 @@ export default function Onboarding() {
     init()
   }, [])
 
-  // Animar features una por una en el paso 0
   useEffect(() => {
     if (step === 0) {
       setFeaturesVisible([])
@@ -70,19 +79,7 @@ export default function Onboarding() {
     goToStep(2)
   }
 
-  const firstName = user?.user_metadata?.full_name?.split(' ')[0] || 'ahí'
-
-  const features = [
-    { icon: '💳', title: 'Tu banco, automático', desc: 'Conecta tu Gmail y los gastos del BCP aparecen solos — sin escribir nada.', locked: false },
-    { icon: '📊', title: 'Sabe en qué gastas', desc: 'Ve exactamente a dónde va tu plata cada mes con gráficas claras.', locked: false },
-    { icon: '🎯', title: 'Ahorra con un objetivo', desc: 'Crea metas y el simulador IA te dice cuánto ahorrar por mes para llegar.', locked: false },
-    { icon: '🤖', title: 'Tu asesor financiero', desc: 'Pregúntale cualquier cosa sobre tu plata. Conoce tu situación y responde al instante.', locked: false },
-    { icon: '📈', title: 'Invierte tu dinero', desc: 'Desbloquea inversiones al llegar a 14 días seguidos registrando gastos.', locked: true },
-  ]
-
-  const slideClass = animating
-    ? 'opacity-0 translate-x-8'
-    : 'opacity-100 translate-x-0'
+  const slideClass = animating ? 'opacity-0 translate-x-8' : 'opacity-100 translate-x-0'
 
   return (
     <div className="min-h-screen bg-[#f5f3ee] flex flex-col overflow-hidden">
@@ -105,7 +102,7 @@ export default function Onboarding() {
             </h1>
             <p className="text-[15px] text-white/70 leading-relaxed"
               style={{animation: 'fadeInUp 0.5s ease-out 0.35s both'}}>
-              Bienvenido a <span className="font-bold text-white">Finti</span> — tu gestor financiero inteligente para jóvenes peruanos.
+              Bienvenido a <span className="font-bold text-white">Finti</span> — tu asesor financiero inteligente para jóvenes peruanos.
             </p>
           </div>
 
@@ -132,7 +129,6 @@ export default function Onboarding() {
                 </div>
               ))}
             </div>
-
             <button onClick={() => goToStep(1)}
               className="w-full bg-[#5a4bc3] text-white rounded-[16px] py-4 font-bold text-[16px] mt-6 active:scale-95 transition-transform"
               style={{animation: 'fadeInUp 0.5s ease-out 1s both'}}>
@@ -142,7 +138,7 @@ export default function Onboarding() {
               style={{animation: 'fadeInUp 0.5s ease-out 1.1s both'}}>
               100% gratis · Sin tarjeta de crédito
             </p>
-            <a href="/seguridad.html" target="_blank" className="text-center text-[11px] text-white/50 mt-1 block"
+            <a href="/seguridad.html" target="_blank" className="text-center text-[11px] text-[#9a9590] mt-1 block"
               style={{animation: 'fadeInUp 0.5s ease-out 1.2s both'}}>
               🔒 Cómo protegemos tus datos
             </a>
@@ -203,7 +199,7 @@ export default function Onboarding() {
                   <button onClick={() => setEsPrimerSueldo(false)}
                     className={`w-full rounded-[16px] border-2 p-4 text-left transition-all active:scale-98 ${esPrimerSueldo === false ? 'border-[#5a4bc3] bg-[#ede9ff]' : 'border-[#ebe6db] bg-white'}`}>
                     <p className="font-bold text-[#1f1f1f] text-[14px]">📊 No, ya manejo mis finanzas</p>
-                    <p className="text-[12px] text-[#9a9590] mt-0.5">Ir directo al dashboard completo.</p>
+                    <p className="text-[12px] text-[#9a9590] mt-0.5">Ir directo a mi resumen completo.</p>
                   </button>
                 </div>
               </div>
@@ -224,7 +220,7 @@ export default function Onboarding() {
                       </span>
                     </div>
                   ))}
-                  <p className="text-[11px] text-[#6b5fc0] mt-2">Puedes ajustar estos porcentajes en Configuración cuando quieras.</p>
+                  <p className="text-[11px] text-[#6b5fc0] mt-2">Puedes ajustar estos porcentajes en Ajustes cuando quieras.</p>
                 </div>
               )}
             </div>
@@ -252,7 +248,7 @@ export default function Onboarding() {
             </h2>
             <p className="text-[14px] text-white/70"
               style={{animation: 'fadeInUp 0.4s ease-out 0.3s both'}}>
-              Ya puedes empezar a controlar tu plata con Finti.
+              Ya puedes empezar a ordenar tu plata con Finti.
             </p>
           </div>
 
@@ -289,7 +285,7 @@ export default function Onboarding() {
             <button onClick={() => router.push('/dashboard')}
               className="w-full bg-[#5a4bc3] text-white rounded-[16px] py-4 font-bold text-[16px] mt-6 active:scale-95 transition-transform"
               style={{animation: 'fadeInUp 0.4s ease-out 0.8s both'}}>
-              ¡Ir a mi dashboard! 🚀
+              ¡Ver mi resumen! 🚀
             </button>
           </div>
         </div>

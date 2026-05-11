@@ -62,7 +62,7 @@ export default function LoginPage() {
       </div>
 
       <h1 className="text-[28px] font-bold text-[#5a4bc3] mb-1">Bienvenido a Finti</h1>
-      <p className="text-[14px] text-[#8c887d] mb-10 text-center">Inicia sesión para continuar</p>
+      <p className="text-[14px] text-[#8c887d] mb-10 text-center">Tu asesor financiero inteligente te espera</p>
 
       <div className="w-full max-w-xs flex flex-col gap-3">
         <button onClick={loginConGoogle} disabled={loading}
