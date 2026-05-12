@@ -222,7 +222,7 @@ function MonthView({ expenses, customCats, onDelete, onEdit }: { expenses: Expen
 
   const weeks: Record<string, Expense[]> = {}
   monthExpenses.forEach(e => {
-const weekNum = Math.ceil(new Date(e.date + 'T12:00:00').getDate() / 7)
+    const weekNum = Math.ceil(new Date(e.date + 'T12:00:00').getDate() / 7)
     const key = `Semana ${weekNum}`
     if (!weeks[key]) weeks[key] = []
     weeks[key].push(e)
@@ -277,6 +277,10 @@ export default function Gastos() {
   const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set())
   const [editando, setEditando] = useState<Expense | null>(null)
   const [editForm, setEditForm] = useState({ description: '', category: 'Alimentación', amount: '', date: '', currency: 'PEN' })
+  const [sincronizando, setSincronizando] = useState(false)
+  const [showGmailModal, setShowGmailModal] = useState(false)
+  const [showSyncResult, setShowSyncResult] = useState(false)
+  const [syncResultData, setSyncResultData] = useState<{ok: boolean, insertados?: number, error?: string} | null>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -313,6 +317,30 @@ export default function Gastos() {
   }, [expenses])
 
   const totalFixed = useMemo(() => fixedExpenses.filter(f=>f.active).reduce((s,f)=>s+Number(f.amount),0), [fixedExpenses])
+
+  const handleGmailSync = async () => {
+    if (!user) return
+    const { data: prof } = await supabase.from('profiles').select('gmail_connected').eq('id', user.id).single()
+    if (!prof?.gmail_connected) {
+      setShowGmailModal(true)
+      return
+    }
+    setSincronizando(true)
+    try {
+      const res = await fetch('/api/gmail/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) })
+      const json = await res.json()
+      setSyncResultData({ ok: json.ok, insertados: json.insertados, error: json.error })
+      setShowSyncResult(true)
+      if (json.ok && json.insertados > 0) {
+        const { data: exp } = await supabase.from('expenses').select('*').eq('user_id', user.id).order('date', { ascending: false }).order('created_at', { ascending: false })
+        setExpenses(exp || [])
+      }
+    } catch {
+      setSyncResultData({ ok: false, error: 'Error de conexión. Intenta de nuevo.' })
+      setShowSyncResult(true)
+    }
+    setSincronizando(false)
+  }
 
   const eliminar = async (id: string) => {
     await supabase.from('expenses').delete().eq('id', id)
@@ -400,7 +428,6 @@ export default function Gastos() {
   return (
     <div className="min-h-screen bg-[#f5f3ee]">
 
-      {/* ── HEADER HERO ── */}
       <div className="bg-[#3d2f9f] px-4 pt-10 pb-10">
         <div className="flex items-start justify-between mb-5">
           <div>
@@ -425,10 +452,7 @@ export default function Gastos() {
         </div>
       </div>
 
-      {/* ── BODY ── */}
       <div className="bg-[#f5f3ee] rounded-t-[28px] -mt-5 px-4 pt-4 pb-32 space-y-4">
-
-        {/* Tabs */}
         <div className="flex gap-1 p-1 bg-white rounded-2xl border border-[#ebe6db]">
           {[{id:'month',label:'Mes'},{id:'week',label:'Semana'},{id:'all',label:'Todos'},{id:'fixed',label:'Fijos'}].map(btn => (
             <button key={btn.id} onClick={() => setFilter(btn.id as any)}
@@ -438,7 +462,6 @@ export default function Gastos() {
           ))}
         </div>
 
-        {/* Botones boleta y banco */}
         <div className="flex gap-2" data-tour="boleta-banco">
           <button onClick={() => setIsScanning(true)}
             className="flex-1 flex items-center justify-center gap-2 bg-white border border-[#ebe6db] rounded-[14px] px-3 py-2.5 text-[13px] font-semibold text-[#5a4bc3]">
@@ -516,20 +539,14 @@ export default function Gastos() {
       </div>
 
       {/* Botones flotantes */}
-      <button onClick={async () => {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-        const { data: prof } = await supabase.from('profiles').select('gmail_connected').eq('id', user.id).single()
-        if (prof?.gmail_connected) {
-          const res = await fetch('/api/gmail/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) })
-          const json = await res.json()
-          if (json.ok) { alert(`✅ Se importaron ${json.insertados} gastos nuevos de tu banco`); window.location.reload() }
-          else alert('❌ Error al sincronizar: ' + json.error)
-        } else {
-          window.location.href = `/api/gmail?userId=${user.id}`
-        }
-      }} className="fixed bottom-24 left-4 w-12 h-12 rounded-full bg-white border-2 border-[#5a4bc3] flex items-center justify-center shadow-lg z-40">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5a4bc3" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      <button onClick={handleGmailSync} disabled={sincronizando}
+        data-tour="gmail-sync"
+        className="fixed bottom-24 left-4 w-12 h-12 rounded-full bg-white border-2 border-[#5a4bc3] flex items-center justify-center shadow-lg z-40 disabled:opacity-60">
+        {sincronizando ? (
+          <div className="w-5 h-5 border-2 border-[#5a4bc3] border-t-transparent rounded-full animate-spin"/>
+        ) : (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5a4bc3" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        )}
       </button>
 
       <button data-tour="agregar" onClick={() => filter==='fixed' ? setIsAddingFixed(true) : setIsAdding(true)}
@@ -541,7 +558,73 @@ export default function Gastos() {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       </Link>
 
-      {/* Modales */}
+      {/* Modal — conectar Gmail */}
+      {showGmailModal && (
+        <div className="fixed inset-0 z-50 bg-black/35 backdrop-blur-sm" onClick={() => setShowGmailModal(false)}>
+          <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-white p-6 pb-10" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#ddd7cc]"/>
+            <div className="w-14 h-14 rounded-[18px] bg-[#ede9ff] flex items-center justify-center mx-auto mb-4 text-3xl">✉️</div>
+            <h2 className="text-[20px] font-bold text-[#1f1f1f] text-center mb-2">Conecta tu correo</h2>
+            <p className="text-[14px] text-[#8c887d] text-center leading-relaxed mb-6">
+              Finti lee las notificaciones de tu banco en Gmail y registra tus gastos automáticamente — sin que tengas que escribir nada.
+            </p>
+            <div className="space-y-3 mb-6">
+              {[
+                { icon: '🔒', text: 'Solo lee notificaciones del banco — nunca tus conversaciones personales' },
+                { icon: '🤖', text: 'La IA extrae el monto y la tienda automáticamente' },
+                { icon: '⚡', text: 'Compatible con BCP y Yape' },
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-3 bg-[#f7f4ed] rounded-[14px] p-3">
+                  <span className="text-lg flex-shrink-0">{item.icon}</span>
+                  <p className="text-[13px] text-[#47433d]">{item.text}</p>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => { setShowGmailModal(false); window.location.href = `/api/gmail?userId=${user.id}` }}
+              className="w-full bg-[#5a4bc3] text-white rounded-[16px] py-4 font-bold text-[15px]">
+              Conectar mi correo →
+            </button>
+            <button onClick={() => setShowGmailModal(false)} className="w-full mt-3 text-[#9a9590] text-[14px] py-2">
+              Ahora no
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal — resultado sync */}
+      {showSyncResult && syncResultData && (
+        <div className="fixed inset-0 z-50 bg-black/35 backdrop-blur-sm" onClick={() => setShowSyncResult(false)}>
+          <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-white p-6 pb-10" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#ddd7cc]"/>
+            {syncResultData.ok ? (
+              <>
+                <div className="w-14 h-14 rounded-full bg-[#e0fdf4] flex items-center justify-center mx-auto mb-4 text-3xl">
+                  {syncResultData.insertados && syncResultData.insertados > 0 ? '🎉' : '✅'}
+                </div>
+                <h2 className="text-[20px] font-bold text-[#1f1f1f] text-center mb-2">
+                  {syncResultData.insertados && syncResultData.insertados > 0 ? '¡Gastos importados!' : 'Todo al día'}
+                </h2>
+                <p className="text-[14px] text-[#8c887d] text-center leading-relaxed">
+                  {syncResultData.insertados && syncResultData.insertados > 0
+                    ? `Se encontraron ${syncResultData.insertados} gasto${syncResultData.insertados > 1 ? 's' : ''} nuevo${syncResultData.insertados > 1 ? 's' : ''} en tu correo del BCP y Yape.`
+                    : 'No hay gastos nuevos en tu correo desde la última vez que revisamos.'}
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="w-14 h-14 rounded-full bg-[#fef2f2] flex items-center justify-center mx-auto mb-4 text-3xl">❌</div>
+                <h2 className="text-[20px] font-bold text-[#1f1f1f] text-center mb-2">Algo salió mal</h2>
+                <p className="text-[14px] text-[#8c887d] text-center leading-relaxed">{syncResultData.error || 'Error al conectar. Intenta de nuevo.'}</p>
+              </>
+            )}
+            <button onClick={() => setShowSyncResult(false)} className="w-full mt-6 bg-[#5a4bc3] text-white rounded-[16px] py-4 font-bold text-[15px]">
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modales existentes */}
       {isScanning && (
         <div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm" onClick={() => setIsScanning(false)}>
           <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-white p-5 pb-8" onClick={e => e.stopPropagation()}>
@@ -778,14 +861,13 @@ export default function Gastos() {
         </div>
       )}
 
-      {/* Navbar */}
       <Navbar />
 
       <TourGuide
         tourKey="gastos"
         steps={[
-          { target:'agregar', title:'➕ Registra tus gastos', message:'Toca aquí para agregar un gasto.', position:'top' },
-          { target:'boleta-banco', title:'📸 Importa automáticamente', message:'Saca foto a tu boleta o sube tu estado de cuenta.', position:'bottom' }
+          { target:'agregar', title:'➕ Registra tus gastos', message:'Toca aquí para agregar un gasto manualmente.', position:'top' },
+          { target:'gmail-sync', title:'✉️ Importa del banco', message:'Toca el sobre para conectar tu correo y traer tus gastos del BCP y Yape automáticamente — sin escribir nada.', position:'top' },
         ]}
       />
     </div>
