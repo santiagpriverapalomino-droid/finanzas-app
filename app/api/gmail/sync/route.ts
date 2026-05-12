@@ -46,10 +46,24 @@ Asunto: ${subject}
 Contenido: ${body.slice(0, 500)}
 
 Responde SOLO con JSON:
-{"es_gasto":true,"monto":50.19,"moneda":"PEN","descripcion":"RAPPI PERU","categoria":"Alimentación"}
+{"es_gasto":true,"monto":50.19,"moneda":"PEN","descripcion":"Rappi","categoria":"Alimentación"}
 
-Categorías: Alimentación, Transporte, Entretenimiento, Compras, Servicios, Salud
-Si es devolución/reembolso/anulación: {"es_gasto":false}
+Reglas para descripcion:
+- Convierte a formato legible: "DLC*UBER RIDES" → "Uber", "RAPPI PERU" → "Rappi", "YAPEO A JUAN" → "Yape a Juan"
+- Elimina asteriscos, códigos y texto en mayúsculas innecesario
+- Máximo 30 caracteres
+
+Categorías disponibles:
+- Alimentación: restaurantes, delivery, supermercados, Rappi, PedidosYa
+- Transporte: Uber, taxis, buses, gasolina, InDriver
+- Entretenimiento: Netflix, Spotify, juegos, cines, apuestas
+- Compras: tiendas, ropa, electrodomésticos, Amazon
+- Servicios: luz, agua, internet, teléfono, seguros, retiro cajero
+- Salud: farmacias, clínicas, médicos
+- Transferencias: pagos a personas por Yape o transferencia bancaria
+
+Si el email menciona transferencia a una persona o "YAPEO A" → categoría debe ser "Transferencias"
+Si es devolución/reembolso/reversa/anulación: {"es_gasto":false}
 Si no hay monto claro: {"es_gasto":false}`
 
     const response = await anthropic.messages.create({
