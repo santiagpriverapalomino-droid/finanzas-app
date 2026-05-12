@@ -252,8 +252,7 @@ export default function Onboarding() {
             </p>
           </div>
 
-          <div className="bg-[#f5f3ee] rounded-t-[28px] -mt-5 px-6 pt-6 pb-10 flex-1 flex flex-col">
-            <div className="space-y-3 flex-1">
+              <div className="bg-[#f5f3ee] rounded-t-[28px] -mt-5 px-6 pt-6 pb-10 flex flex-col">            <div className="space-y-3 flex-1">
               <div className="rounded-[18px] bg-white border border-[#ebe6db] p-5"
                 style={{animation: 'fadeInUp 0.4s ease-out 0.3s both'}}>
                 <p className="text-[14px] font-bold text-[#1f1f1f] mb-3">Tu primer paso 👇</p>
