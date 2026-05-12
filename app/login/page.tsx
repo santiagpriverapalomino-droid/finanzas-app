@@ -50,21 +50,22 @@ export default function LoginPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#f5f3ee] flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen bg-[#f5f3ee] flex flex-col">
 
-      {/* Logo */}
-      <div className="w-[72px] h-[72px] rounded-[20px] bg-[#5a4bc3] flex items-center justify-center mb-4">
-        <svg width="40" height="40" viewBox="0 0 44 44" fill="none">
-          <polyline points="4,36 14,20 22,28 32,10 40,18" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
-          <circle cx="36" cy="8" r="4" fill="#FCD34D"/>
-          <circle cx="8" cy="38" r="3" fill="#22C55E"/>
-        </svg>
+      <div className="bg-[#3d2f9f] px-6 pt-16 pb-16 flex flex-col items-center text-center">
+        <div className="w-[72px] h-[72px] rounded-[20px] bg-white/20 flex items-center justify-center mb-5">
+          <svg width="40" height="40" viewBox="0 0 44 44" fill="none">
+            <polyline points="4,36 14,20 22,28 32,10 40,18" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="36" cy="8" r="4" fill="#FCD34D"/>
+            <circle cx="8" cy="38" r="3" fill="#22C55E"/>
+          </svg>
+        </div>
+        <h1 className="text-[28px] font-bold text-white mb-2">Bienvenido a Finti</h1>
+        <p className="text-[14px] text-white/70">Tu asesor financiero inteligente te espera</p>
       </div>
 
-      <h1 className="text-[28px] font-bold text-[#5a4bc3] mb-1">Bienvenido a Finti</h1>
-      <p className="text-[14px] text-[#8c887d] mb-10 text-center">Tu asesor financiero inteligente te espera</p>
-
-      <div className="w-full max-w-xs flex flex-col gap-3">
+      <div className="bg-[#f5f3ee] rounded-t-[28px] -mt-5 flex-1 flex flex-col items-center justify-center px-6 pb-10">
+        <div className="w-full max-w-xs flex flex-col gap-3">
         <button onClick={loginConGoogle} disabled={loading}
           className="w-full flex items-center justify-center gap-3 bg-white border border-[#e2decb] rounded-[18px] py-4 text-[15px] font-semibold text-[#1f1f1f] active:scale-95 transition-transform disabled:opacity-50">
           <svg width="20" height="20" viewBox="0 0 18 18">
@@ -77,16 +78,17 @@ export default function LoginPage() {
         </button>
 
         <button disabled className="w-full flex items-center justify-center gap-3 bg-white border border-[#e2decb] rounded-[18px] py-4 text-[15px] font-semibold text-[#8c887d] opacity-50">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-          Continuar con Apple
-          <span className="text-[11px] bg-[#f3f0e8] px-2 py-0.5 rounded-full">Próximamente</span>
-        </button>
-      </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+            Continuar con Apple
+            <span className="text-[11px] bg-[#f3f0e8] px-2 py-0.5 rounded-full">Próximamente</span>
+          </button>
+        </div>
 
-      <p className="text-[12px] text-[#8c887d] mt-8 text-center leading-relaxed">
-        Al continuar aceptas nuestros<br/>
-        <a href="/terminos.html" className="text-[#5a4bc3]">Términos</a> y <a href="/privacidad.html" className="text-[#5a4bc3]">Política de privacidad</a>
-      </p>
+        <p className="text-[12px] text-[#8c887d] mt-8 text-center leading-relaxed">
+          Al continuar aceptas nuestros<br/>
+          <a href="/terminos.html" className="text-[#5a4bc3]">Términos</a> y <a href="/privacidad.html" className="text-[#5a4bc3]">Política de privacidad</a>
+        </p>
+      </div>
     </div>
   )
 }

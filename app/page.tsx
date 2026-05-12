@@ -92,7 +92,7 @@ export default function LandingPage() {
               'App peruana que importa gastos automáticamente desde tu Gmail',
               'Asesor financiero con IA disponible 24/7',
               'Modo oscuro y temas personalizables',
-              'Instálala en tu celular como app — sin descargar nada',
+              'Disponible en App Store y Google Play',
               '100% gratis para empezar',
               'Tus datos encriptados — nunca vendemos tu información',
               'Acceso de solo lectura a Gmail — no lee tus conversaciones',
