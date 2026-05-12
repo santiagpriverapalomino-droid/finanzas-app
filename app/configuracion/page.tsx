@@ -45,7 +45,7 @@ export default function Configuracion() {
         const sorted = Object.entries(byMonth).sort((a,b) => b[0].localeCompare(a[0])).map(([key, total]) => {
           const [year, month] = key.split('-')
           const date = new Date(parseInt(year), parseInt(month)-1, 1)
-          return { label: date.toLocaleDateString('es-PE',{month:'long',year:'numeric'}), total, key }
+          return { label: date.toLocaleDateString('es-PE',{month:'long',year:'numeric'}).replace(' De ', ' de '), total, key }
         })
         setHistorial(sorted)
       }
@@ -149,7 +149,7 @@ export default function Configuracion() {
         <div>
           <p className="text-[11px] font-semibold tracking-widest text-[#8c887d] uppercase">{firstName}</p>
           <p className="text-[13px] font-bold tracking-widest text-[#1f1f1f] uppercase">
-            {seccion === 'menu' ? 'Configuración' : seccion === 'perfil' ? 'Mi Perfil' : seccion === 'plan' ? 'Mi Plan Financiero' : 'Historial de meses'}
+            {seccion === 'menu' ? 'Ajustes' : seccion === 'perfil' ? 'Mi Perfil' : seccion === 'plan' ? 'Mi Plan Financiero' : 'Historial de meses'}
           </p>
         </div>
         <button onClick={async () => { await supabase.auth.signOut(); router.push('/') }} className="w-9 h-9 rounded-full bg-[#ece8df] flex items-center justify-center">
@@ -161,7 +161,7 @@ export default function Configuracion() {
 
         {seccion === 'menu' && (
           <div className="space-y-3">
-            <p className="text-[13px] text-[#8c887d]">Gestiona tu cuenta y preferencias.</p>
+            <p className="text-[13px] text-[#8c887d]">Personaliza tu experiencia.</p>
 
             {[
               { label: 'Mi perfil', icon: '👤', onClick: () => setSeccion('perfil') },
@@ -343,7 +343,7 @@ export default function Configuracion() {
               {msg && <p className="text-[13px] text-[#22c55e] font-medium">{msg}</p>}
               <button onClick={guardarPerfil} disabled={guardando}
                 className="w-full rounded-[14px] bg-[#5a4bc3] py-3 text-[14px] font-bold text-white disabled:opacity-40">
-                {guardando ? 'Guardando...' : '💾 Guardar cambios'}
+                {guardando ? 'Guardando...' : 'Guardar cambios'}
               </button>
             </div>
 
