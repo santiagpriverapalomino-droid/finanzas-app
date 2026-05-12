@@ -219,23 +219,29 @@ export default function Metas() {
         })}
 
         {showForm && (
-          <div className="rounded-[18px] border border-[#c8bbf5] bg-white p-4">
-            <p className="text-[14px] font-bold text-[#3d2fa0] mb-3">Nueva meta</p>
-            <div className="space-y-3">
-              <input type="text" placeholder="Nombre de la meta (ej: Viaje a Cusco)"
-                value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                className="w-full rounded-[14px] border border-[#ebe6db] bg-[#f7f4ed] px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
-              <input type="number" placeholder="Monto objetivo en S/"
-                value={form.target_amount} onChange={e => setForm({ ...form, target_amount: e.target.value })}
-                className="w-full rounded-[14px] border border-[#ebe6db] bg-[#f7f4ed] px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
-              <input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })}
-                className="w-full rounded-[14px] border border-[#ebe6db] bg-[#f7f4ed] px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
-              <div className="flex gap-2">
-                <button onClick={() => setShowForm(false)} className="flex-1 rounded-[14px] border border-[#ebe6db] py-3 text-[14px] text-[#9a9590]">Cancelar</button>
-                <button onClick={agregarMeta} disabled={guardando || !form.name || !form.target_amount}
-                  className="flex-1 rounded-[14px] bg-[#5a4bc3] py-3 text-[14px] font-bold text-white disabled:opacity-40">
-                  {guardando ? 'Guardando...' : 'Guardar'}
-                </button>
+          <div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm" onClick={() => setShowForm(false)}>
+            <div className="absolute inset-x-0 bottom-0 rounded-t-[34px] bg-white p-5 pb-8" onClick={e => e.stopPropagation()}>
+              <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#ddd7cc]"/>
+              <h2 className="text-[18px] font-semibold text-[#1f1f1f] mb-4">Nueva meta</h2>
+              <div className="space-y-3">
+                <input type="text" placeholder="Nombre de la meta (ej: Viaje a Cusco)"
+                  value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                  className="w-full rounded-[14px] border border-[#ebe6db] bg-[#f7f4ed] px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
+                <input type="number" placeholder="Monto objetivo en S/"
+                  value={form.target_amount} onChange={e => setForm({ ...form, target_amount: e.target.value })}
+                  className="w-full rounded-[14px] border border-[#ebe6db] bg-[#f7f4ed] px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
+                <div>
+                  <p className="text-[11px] font-bold uppercase text-[#9a9590] mb-1">Fecha límite (opcional)</p>
+                  <input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })}
+                    className="w-full rounded-[14px] border border-[#ebe6db] bg-[#f7f4ed] px-4 py-3 text-[14px] outline-none focus:border-[#5a4bc3]"/>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => setShowForm(false)} className="rounded-[14px] border border-[#ebe6db] py-3 text-[14px] text-[#9a9590]">Cancelar</button>
+                  <button onClick={agregarMeta} disabled={guardando || !form.name || !form.target_amount}
+                    className="rounded-[14px] bg-[#5a4bc3] py-3 text-[14px] font-bold text-white disabled:opacity-40">
+                    {guardando ? 'Guardando...' : 'Guardar'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
