@@ -35,7 +35,7 @@ const NO_DATA_TIPS = [
   'Define una meta de ahorro con fecha límite. Las metas sin fecha raramente se cumplen.',
 ]
 
-interface Expense { id: string; amount: number; category: string; description: string; date: string }
+interface Expense { id: string; amount: number; category: string; description: string; date: string; currency?: string }
 interface Goal { id: string; name: string; target_amount: number; saved_amount: number }
 interface Profile {
   monthly_income: number; salary_day: number; is_first_salary_mode: boolean
@@ -223,7 +223,8 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
     if (user) await supabase.from('profiles').update({ dashboard_widgets: newWidgets }).eq('id', user.id)
   }
 
-  const totalGastado = useMemo(() => expenses.reduce((s,e)=>s+Number(e.amount),0), [expenses])
+  const totalGastado = useMemo(() => expenses.filter(e => !e.currency || e.currency === 'PEN').reduce((s,e)=>s+Number(e.amount),0), [expenses])
+  const totalUSD = useMemo(() => expenses.filter(e => e.currency === 'USD').reduce((s,e)=>s+Number(e.amount),0), [expenses])
   const disponible = (profile?.monthly_income||0) - totalGastado
   const activeGoal = goals[0] || null
   const goalPct = activeGoal ? Math.min(100,Math.round(activeGoal.saved_amount/activeGoal.target_amount*100)) : 0
@@ -333,6 +334,7 @@ Si va bien, felicítalo brevemente y da un consejo accionable. Si va mal, alért
         <div className="flex gap-2 mt-3 flex-wrap">
           <span className="bg-[#4ade80]/25 text-[#4ade80] text-[11px] font-semibold px-3 py-1.5 rounded-full">{fmt(disponible)} disponible</span>
           <span className="bg-white/15 text-white text-[11px] px-3 py-1.5 rounded-full">{daysUntilSalary}d para cobro</span>
+          {totalUSD > 0 && <span className="bg-[#1fa18b]/30 text-[#4ade80] text-[11px] font-semibold px-3 py-1.5 rounded-full">+${totalUSD.toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:2})} USD</span>}
         </div>
       </div>
 
