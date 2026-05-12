@@ -64,7 +64,7 @@ export default function LoginPage() {
         <p className="text-[14px] text-white/70">Tu asesor financiero inteligente te espera</p>
       </div>
 
-      <div className="bg-[#f5f3ee] rounded-t-[28px] -mt-5 flex-1 flex flex-col items-center justify-center px-6 pb-10">
+      <div className="bg-[#f5f3ee] rounded-t-[28px] -mt-5 flex-1 flex flex-col items-center justify-start px-6 pt-16 pb-10">
         <div className="w-full max-w-xs flex flex-col gap-3">
         <button onClick={loginConGoogle} disabled={loading}
           className="w-full flex items-center justify-center gap-3 bg-white border border-[#e2decb] rounded-[18px] py-4 text-[15px] font-semibold text-[#1f1f1f] active:scale-95 transition-transform disabled:opacity-50">
