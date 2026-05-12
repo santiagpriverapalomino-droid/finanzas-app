@@ -198,7 +198,7 @@ export default function Onboarding() {
                   </button>
                   <button onClick={() => setEsPrimerSueldo(false)}
                     className={`w-full rounded-[16px] border-2 p-4 text-left transition-all active:scale-98 ${esPrimerSueldo === false ? 'border-[#5a4bc3] bg-[#ede9ff]' : 'border-[#ebe6db] bg-white'}`}>
-                    <p className="font-bold text-[#1f1f1f] text-[14px]">📊 No, ya manejo mis finanzas</p>
+                    <p className="font-bold text-[#1f1f1f] text-[14px]">💼 No, ya manejo mis finanzas</p>
                     <p className="text-[12px] text-[#9a9590] mt-0.5">Ir directo a mi resumen completo.</p>
                   </button>
                 </div>
@@ -271,7 +271,7 @@ export default function Onboarding() {
                   ))}
                 </div>
               </div>
-
+              
               <div className="rounded-[18px] bg-[#ede9ff] border border-[#c8bbf5] p-4 flex items-center gap-3"
                 style={{animation: 'fadeInUp 0.4s ease-out 0.7s both'}}>
                 <span className="text-2xl">🔒</span>
