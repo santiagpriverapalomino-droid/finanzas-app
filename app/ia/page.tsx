@@ -188,10 +188,10 @@ export default function ChatIA() {
       <div className="px-4 pt-5 pb-2 flex items-start justify-between flex-shrink-0">
         <div>
           <p className="text-[11px] font-semibold tracking-widest text-[#8c887d] uppercase">{firstName}</p>
-          <p className="text-[13px] font-bold tracking-widest text-[#1f1f1f] uppercase">Asesor Finti IA</p>
+          <p className="text-[13px] font-bold tracking-widest text-[#1f1f1f] uppercase">Tu asesor</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={limpiarChat} className="w-9 h-9 rounded-full bg-[#ece8df] flex items-center justify-center" title="Limpiar chat">
+          <button onClick={() => { if (window.confirm('¿Borrar el historial del chat? Esta acción no se puede deshacer.')) limpiarChat() }} className="w-9 h-9 rounded-full bg-[#ece8df] flex items-center justify-center" title="Limpiar chat">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5a4bc3" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
           </button>
           <Link href="/configuracion" className="w-9 h-9 rounded-full bg-[#ece8df] flex items-center justify-center">
