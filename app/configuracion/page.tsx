@@ -97,46 +97,56 @@ export default function Configuracion() {
     router.push('/')
   }
 
-  const exportarPDF = async () => {
-    const { default: jsPDF } = await import('jspdf')
-    const doc = new jsPDF()
+  const exportarExcel = async () => {
+    const XLSX = await import('xlsx')
     const now = new Date()
     const mes = now.toLocaleDateString('es-PE', {month:'long', year:'numeric'})
-    doc.setFontSize(20)
-    doc.setTextColor(76, 29, 149)
-    doc.text('Finti — Resumen Financiero', 20, 20)
-    doc.setFontSize(12)
-    doc.setTextColor(100, 100, 100)
-    doc.text(`Usuario: ${form.full_name}`, 20, 35)
-    doc.text(`Período: ${mes}`, 20, 43)
-    doc.text(`Ingreso mensual: S/${parseFloat(form.monthly_income || '0').toLocaleString('es-PE')}`, 20, 51)
+
     const mesActual = expenses.filter(e => {
       const d = new Date(e.date)
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
     })
+
     const totalMes = mesActual.reduce((s, e) => s + Number(e.amount), 0)
     const disponible = parseFloat(form.monthly_income || '0') - totalMes
-    doc.setFontSize(14)
-    doc.setTextColor(178, 79, 88)
-    doc.text(`Total gastado: S/${totalMes.toLocaleString('es-PE')}`, 20, 65)
-    doc.setTextColor(69, 125, 49)
-    doc.text(`Disponible: S/${disponible.toLocaleString('es-PE')}`, 20, 75)
-    doc.setFontSize(13)
-    doc.setTextColor(50, 50, 50)
-    doc.text('Últimos gastos del mes:', 20, 90)
-    let y = 100
-    mesActual.slice(0, 15).forEach(e => {
-      doc.setFontSize(10)
-      doc.setTextColor(80, 80, 80)
-      doc.text(`• ${e.description} (${e.category})`, 22, y)
-      doc.text(`S/${Number(e.amount).toLocaleString('es-PE')}`, 170, y, {align:'right'})
-      y += 8
-      if (y > 270) { doc.addPage(); y = 20 }
+
+    const resumen = [
+      ['Finti — Resumen Financiero', ''],
+      ['Usuario', form.full_name],
+      ['Período', mes],
+      ['Ingreso mensual', `S/${parseFloat(form.monthly_income || '0').toLocaleString('es-PE')}`],
+      ['Total gastado', `S/${totalMes.toLocaleString('es-PE')}`],
+      ['Disponible', `S/${disponible.toLocaleString('es-PE')}`],
+      ['', ''],
+      ['Categoría', 'Total'],
+    ]
+    const porCategoria: Record<string, number> = {}
+    mesActual.forEach(e => { porCategoria[e.category] = (porCategoria[e.category] || 0) + Number(e.amount) })
+    Object.entries(porCategoria).sort((a,b) => b[1]-a[1]).forEach(([cat, total]) => {
+      resumen.push([cat, `S/${total.toLocaleString('es-PE')}`])
     })
-    doc.setFontSize(9)
-    doc.setTextColor(150, 150, 150)
-    doc.text('Generado por Finti — Tu gestor financiero inteligente', 20, 285)
-    doc.save(`finti-resumen-${now.getFullYear()}-${now.getMonth()+1}.pdf`)
+
+    const gastosData = [
+      ['Fecha', 'Descripción', 'Categoría', 'Monto'],
+      ...mesActual.map(e => [
+        new Date(e.date + 'T12:00:00').toLocaleDateString('es-PE'),
+        e.description,
+        e.category,
+        Number(e.amount)
+      ])
+    ]
+
+    const wb = XLSX.utils.book_new()
+    const wsResumen = XLSX.utils.aoa_to_sheet(resumen)
+    const wsGastos = XLSX.utils.aoa_to_sheet(gastosData)
+
+    wsResumen['!cols'] = [{wch:25},{wch:20}]
+    wsGastos['!cols'] = [{wch:12},{wch:35},{wch:18},{wch:12}]
+
+    XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen')
+    XLSX.utils.book_append_sheet(wb, wsGastos, 'Gastos')
+
+    XLSX.writeFile(wb, `finti-${now.getFullYear()}-${now.getMonth()+1}.xlsx`)
   }
 
   if (loading) return <div className="min-h-screen bg-[#f5f3ee] flex items-center justify-center"><p className="text-[#8c887d]">Cargando...</p></div>
@@ -266,11 +276,11 @@ export default function Configuracion() {
               </div>
             </div>
 
-            {/* Exportar PDF */}
-            <button onClick={exportarPDF}
+            {/* Exportar Excel */}
+            <button onClick={exportarExcel}
               className="w-full flex items-center gap-4 rounded-[22px] bg-white border border-[#ebe6db] p-4">
-              <div className="w-10 h-10 rounded-full bg-[#22c55e] flex items-center justify-center text-lg">📄</div>
-              <span className="text-[15px] font-medium text-[#1f1f1f]">Exportar resumen en PDF</span>
+              <div className="w-10 h-10 rounded-full bg-[#22c55e] flex items-center justify-center text-lg">📊</div>
+              <span className="text-[15px] font-medium text-[#1f1f1f]">Exportar resumen en Excel</span>
               <svg className="ml-auto" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8c887d" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
 
